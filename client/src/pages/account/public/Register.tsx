@@ -122,7 +122,7 @@ const Register = () => {
                     state: {email: form.getValues().email, fromInternalFlow: true, password: form.getValues().password},
                 });
             } else if (!activationRequired) {
-                navigate('/activate', {state: {noActivationRequired: true}});
+                navigate('/activate', {state: {fromInternalFlow: true}});
             }
 
             reset();

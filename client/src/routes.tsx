@@ -203,7 +203,7 @@ export const getRouter = (queryClient: QueryClient) =>
                 },
                 {
                     element: (
-                        <AccessControl noActivationRequired={true} requiresKey={true}>
+                        <AccessControl requiresFlow requiresKey>
                             <RegisterSuccess />
                         </AccessControl>
                     ),
@@ -211,7 +211,7 @@ export const getRouter = (queryClient: QueryClient) =>
                 },
                 {
                     element: (
-                        <AccessControl requiresKey={true}>
+                        <AccessControl requiresKey>
                             <PasswordResetFinish />
                         </AccessControl>
                     ),
@@ -219,7 +219,7 @@ export const getRouter = (queryClient: QueryClient) =>
                 },
                 {
                     element: (
-                        <AccessControl requiresFlow={true}>
+                        <AccessControl requiresFlow>
                             <PasswordResetEmailSent />
                         </AccessControl>
                     ),
@@ -227,7 +227,7 @@ export const getRouter = (queryClient: QueryClient) =>
                 },
                 {
                     element: (
-                        <AccessControl requiresFlow={true}>
+                        <AccessControl requiresFlow>
                             <VerifyEmail />
                         </AccessControl>
                     ),
@@ -235,7 +235,7 @@ export const getRouter = (queryClient: QueryClient) =>
                 },
                 {
                     element: (
-                        <AccessControl requiresFlow={true}>
+                        <AccessControl requiresFlow>
                             <AccountErrorPage />
                         </AccessControl>
                     ),

@@ -5,27 +5,21 @@ interface AccessControlProps {
     children: ReactNode;
     requiresFlow?: boolean;
     requiresKey?: boolean;
-    noActivationRequired?: boolean;
 }
 
-export const AccessControl = ({
-    children,
-    noActivationRequired = false,
-    requiresFlow = false,
-    requiresKey = false,
-}: AccessControlProps) => {
+export const AccessControl = ({children, requiresFlow = false, requiresKey = false}: AccessControlProps) => {
     const [searchParams] = useSearchParams();
     const location = useLocation();
     const key = searchParams.get('key');
 
     const hasActivationKey = Boolean(key);
 
-    const isNoActivationFlow = noActivationRequired ? Boolean(location.state?.noActivationRequired) : true;
-
     const isFromInternalFlow = requiresFlow ? Boolean(location.state?.fromInternalFlow) : true;
 
-    const shouldRedirectToLogin =
-        (requiresKey && !hasActivationKey && !isNoActivationFlow) || (requiresFlow && !isFromInternalFlow);
+    const canRenderWithKey = requiresKey && hasActivationKey;
+    const canRenderWithFlow = requiresFlow && isFromInternalFlow;
+
+    const shouldRedirectToLogin = !canRenderWithKey && !canRenderWithFlow;
 
     if (shouldRedirectToLogin) {
         return <Navigate replace to="/login" />;
