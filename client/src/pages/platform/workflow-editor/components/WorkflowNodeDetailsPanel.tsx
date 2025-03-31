@@ -125,6 +125,8 @@ const WorkflowNodeDetailsPanel = ({
         !!currentNode && !currentNode.taskDispatcher
     );
 
+    console.log('currentComponentDefinition', currentComponentDefinition);
+
     const {data: workflowTestConfigurationConnections} = useGetWorkflowTestConfigurationConnectionsQuery(
         {
             workflowId: workflow.id as string,

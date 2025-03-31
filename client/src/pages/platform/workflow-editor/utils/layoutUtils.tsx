@@ -28,6 +28,7 @@ import InlineSVG from 'react-inlinesvg';
 
 import {getConditionBranchSide} from './createConditionEdges';
 import {TASK_DISPATCHER_CONFIG, findParentTaskDispatcher} from './taskDispatcherConfig';
+import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 
 export const calculateNodeHeight = (node: Node) => {
     const isTopGhostNode = node.type === 'taskDispatcherTopGhostNode';
@@ -64,9 +65,19 @@ export const convertTaskToNode = (
 
     const isTaskDispatcher = TASK_DISPATCHER_NAMES.includes(componentName);
 
+    const {workflow} = useWorkflowDataStore.getState();
+
+    const workflowDefinition = JSON.parse(workflow.definition);
+
+    const currentTask = workflowDefinition.tasks.find((workflowTask) => workflowTask.name === task.name);
+
+    const isClusterElement = Boolean(currentTask?.clusterElements);
+
     return {
         data: {
             ...task,
+            clusterElement: isClusterElement,
+            clusterElements: currentTask?.clusterElements,
             componentName,
             icon: (
                 <InlineSVG
@@ -125,7 +136,7 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], canvasWidth: n
         let positionX = dagreGraph.node(node.id).x + (canvasWidth / 2 - dagreGraph.node(nodes[0].id).x - 72 / 2);
 
         if (node.type === 'aiAgentNode') {
-            positionX -= 100;
+            positionX -= 80;
         }
 
         return {

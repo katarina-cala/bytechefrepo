@@ -110,6 +110,21 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
         fetchRootComponentClusterElementDefinition();
     };
 
+    const agentModel = data.clusterElements?.model?.type.split('/')[0];
+    // console.log('agentModel', agentModel);
+
+    const agentMemory = data.clusterElements?.chatMemory?.type.split('/')[0];
+
+    const agentRetrieval = data.clusterElements?.rag?.type.split('/')[0];
+
+    console.log(id, 'agent data', data.clusterElements?.tools);
+
+    const agentTools = data.clusterElements?.tools.map((tool) => {
+        const toolName = tool.name;
+        return toolName;
+    });
+    console.log(id, 'agent tools', agentTools);
+
     return (
         <div
             className={twMerge(
@@ -158,7 +173,7 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
             >
                 <Button
                     className={twMerge(
-                        'size-18 flex flex-col items-start rounded-md border-2 border-gray-300 bg-background p-4 text-content-neutral-primary shadow hover:bg-background hover:shadow-none [&_svg]:size-8',
+                        'size-18 flex flex-col items-start rounded-md border-2 border-gray-300 bg-background p-2 text-content-neutral-primary shadow hover:bg-background hover:shadow-none [&_svg]:size-8',
                         isSelected && workflowNodeDetailsPanelOpen && 'border-blue-300 bg-background shadow-none'
                     )}
                     onClick={handleNodeClick}
@@ -181,9 +196,7 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                                     handleSelectModel('MODEL');
                                 }}
                             >
-                                {agentData.MODEL ? agentData.MODEL : 'Set AI model'}
-
-                                <ChevronRightIcon />
+                                {agentModel ? agentModel : agentData.MODEL ? agentData.MODEL : 'Model'}
                             </Button>
                         </WorkflowNodesPopoverMenu>
                     </div>
@@ -196,18 +209,18 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                             sourceNodeId={id}
                         >
                             <Button
-                                className="rounded-full font-medium hover:bg-surface-neutral-secondary-hover [&>svg]:max-w-4"
+                                className="rounded-full px-2 font-medium hover:bg-surface-neutral-secondary-hover [&>svg]:max-w-4"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     handleSelectModel('RAG');
                                 }}
                                 variant="outline"
                             >
-                                {agentData.RAG ? (
+                                {agentRetrieval ? (
+                                    agentRetrieval
+                                ) : agentData.RAG ? (
                                     <>
-                                        <ComponentIcon />
-
-                                        {agentData.RAG}
+                                        <ComponentIcon /> {agentData.RAG}
                                     </>
                                 ) : (
                                     <>
@@ -224,16 +237,18 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                             sourceNodeId={id}
                         >
                             <Button
-                                className="rounded-full hover:bg-surface-neutral-secondary-hover [&>svg]:max-w-4"
+                                className="rounded-full px-2 hover:bg-surface-neutral-secondary-hover [&>svg]:max-w-4"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     handleSelectModel('CHAT_MEMORY');
                                 }}
                                 variant="outline"
                             >
-                                {agentData.CHAT_MEMORY ? (
+                                {agentMemory ? (
+                                    agentMemory
+                                ) : agentData.CHAT_MEMORY ? (
                                     <>
-                                        <ComponentIcon /> {agentData.CHAT_MEMORY}{' '}
+                                        <ComponentIcon /> {agentData.CHAT_MEMORY}
                                     </>
                                 ) : (
                                     <>
@@ -244,32 +259,48 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                         </WorkflowNodesPopoverMenu>
                     </div>
 
-                    <WorkflowNodesPopoverMenu
-                        agentData={agentData}
-                        setAgentData={setAgentData}
-                        sourceData={aiAgentDefinition}
-                        sourceNodeId={id}
-                    >
-                        <Button
-                            className="rounded-full bg-surface-neutral-secondary hover:bg-surface-neutral-secondary-hover [&>svg]:max-w-4"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleSelectModel('TOOLS');
-                            }}
-                            variant="ghost"
+                    <div>
+                        <WorkflowNodesPopoverMenu
+                            agentData={agentData}
+                            setAgentData={setAgentData}
+                            sourceData={aiAgentDefinition}
+                            sourceNodeId={id}
                         >
-                            {agentData.TOOLS ? (
-                                <>
-                                    <ComponentIcon /> {agentData.TOOLS}
-                                </>
-                            ) : (
-                                <>
-                                    <PlusIcon className="size-4" />
-                                    Tools
-                                </>
-                            )}
-                        </Button>
-                    </WorkflowNodesPopoverMenu>
+                            <div className="flex items-center">
+                                {agentTools &&
+                                    agentTools.map((tool, index) => (
+                                        <Button key={index} variant="ghost">
+                                            {tool}
+                                        </Button>
+                                    ))}
+
+                                <Button
+                                    className={twMerge(
+                                        'rounded-full bg-surface-neutral-secondary px-3 hover:bg-surface-neutral-secondary-hover [&>svg]:max-w-4',
+                                        agentTools && 'rounded-full p-3'
+                                    )}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSelectModel('TOOLS');
+                                    }}
+                                    variant="ghost"
+                                >
+                                    {agentData.TOOLS ? (
+                                        <>
+                                            <ComponentIcon /> {agentData.TOOLS}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <PlusIcon className="size-4" />
+                                            <span className={twMerge(agentTools ? 'hidden' : 'inline-block')}>
+                                                Tool
+                                            </span>
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </WorkflowNodesPopoverMenu>
+                    </div>
                 </Button>
 
                 <HoverCardPortal>
@@ -302,14 +333,14 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
             </div>
 
             <Handle
-                className={twMerge('left-[135px]', styles.handle)}
+                className={twMerge('left-[115px]', styles.handle)}
                 isConnectable={false}
                 position={Position.Top}
                 type="target"
             />
 
             <Handle
-                className={twMerge('left-[135px]', styles.handle)}
+                className={twMerge('left-[115px]', styles.handle)}
                 isConnectable={false}
                 position={Position.Bottom}
                 type="source"
