@@ -67,9 +67,9 @@ export const convertTaskToNode = (
 
     const {workflow} = useWorkflowDataStore.getState();
 
-    const workflowDefinition = JSON.parse(workflow.definition);
+    const workflowDefinition = JSON.parse(workflow.definition!);
 
-    const currentTask = workflowDefinition.tasks.find((workflowTask) => workflowTask.name === task.name);
+    const currentTask = workflowDefinition.tasks.find((workflowTask: WorkflowTask) => workflowTask.name === task.name);
 
     const isClusterElement = Boolean(currentTask?.clusterElements);
 
