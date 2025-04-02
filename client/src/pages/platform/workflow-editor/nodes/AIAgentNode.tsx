@@ -11,15 +11,7 @@ import {NodeDataType} from '@/shared/types';
 import {HoverCardPortal} from '@radix-ui/react-hover-card';
 import {useQueryClient} from '@tanstack/react-query';
 import {Handle, Position} from '@xyflow/react';
-import {
-    ChevronRightIcon,
-    ComponentIcon,
-    DatabaseIcon,
-    MemoryStick,
-    PencilIcon,
-    PlusIcon,
-    TrashIcon,
-} from 'lucide-react';
+import {ComponentIcon, DatabaseIcon, MemoryStick, PencilIcon, PlusIcon, TrashIcon} from 'lucide-react';
 import {memo, useState} from 'react';
 import {useParams} from 'react-router-dom';
 import sanitize from 'sanitize-html';
@@ -41,7 +33,9 @@ export type AgentDataType = {
 };
 
 const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
-    const [aiAgentDefinition, setAiAgentDefinition] = useState<ClusterElementDefinitionBasic[]>([]);
+    const [clusterElementTypeDefinition, setClusterElementTypeDefinition] = useState<ClusterElementDefinitionBasic[]>(
+        []
+    );
     const [agentData, setAgentData] = useState<AgentDataType>({
         CHAT_MEMORY: '',
         MODEL: '',
@@ -86,7 +80,7 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
         }
     };
 
-    const handleSelectModel = (model: string) => {
+    const handleClusterElementTypeClick = (model: string) => {
         const rootComponentClusterElementDefinitionRequest: GetRootComponentClusterElementDefinitionsRequest = {
             clusterElementType: model,
             rootComponentName: data?.componentName || '',
@@ -104,26 +98,24 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                 ),
             });
 
-            setAiAgentDefinition(rootComponentClusterElementDefinition);
+            setClusterElementTypeDefinition(rootComponentClusterElementDefinition);
         };
 
         fetchRootComponentClusterElementDefinition();
     };
 
+    console.log('cluster element type definition', clusterElementTypeDefinition);
+
     const agentModel = data.clusterElements?.model?.type.split('/')[0];
-    // console.log('agentModel', agentModel);
 
     const agentMemory = data.clusterElements?.chatMemory?.type.split('/')[0];
 
-    const agentRetrieval = data.clusterElements?.rag?.type.split('/')[0];
-
-    console.log(id, 'agent data', data.clusterElements?.tools);
+    const agentRetrieval = data.clusterElements?.RAG?.type.split('/')[0];
 
     const agentTools = data.clusterElements?.tools.map((tool) => {
         const toolName = tool.name;
         return toolName;
     });
-    console.log(id, 'agent tools', agentTools);
 
     return (
         <div
@@ -133,7 +125,7 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
             )}
             data-nodetype="aiAgentNode"
             key={id}
-            onMouseOut={() => setIsHovered(false)}
+            onMouseOut={() => setIsHovered(true)}
             onMouseOver={() => setIsHovered(true)}
         >
             {isHovered && (
@@ -186,14 +178,14 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                         <WorkflowNodesPopoverMenu
                             agentData={agentData}
                             setAgentData={setAgentData}
-                            sourceData={aiAgentDefinition}
+                            sourceData={clusterElementTypeDefinition}
                             sourceNodeId={id}
                         >
                             <Button
                                 className="[&>span]:line-clamp-0 border border-stroke-neutral-secondary bg-background px-3 py-2 text-content-neutral-primary shadow-none hover:bg-surface-neutral-primary-hover [&>span]:truncate [&>svg]:max-w-4"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleSelectModel('MODEL');
+                                    handleClusterElementTypeClick('MODEL');
                                 }}
                             >
                                 {agentModel ? agentModel : agentData.MODEL ? agentData.MODEL : 'Model'}
@@ -205,14 +197,14 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                         <WorkflowNodesPopoverMenu
                             agentData={agentData}
                             setAgentData={setAgentData}
-                            sourceData={aiAgentDefinition}
+                            sourceData={clusterElementTypeDefinition}
                             sourceNodeId={id}
                         >
                             <Button
                                 className="rounded-full px-2 font-medium hover:bg-surface-neutral-secondary-hover [&>svg]:max-w-4"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleSelectModel('RAG');
+                                    handleClusterElementTypeClick('RAG');
                                 }}
                                 variant="outline"
                             >
@@ -233,14 +225,14 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                         <WorkflowNodesPopoverMenu
                             agentData={agentData}
                             setAgentData={setAgentData}
-                            sourceData={aiAgentDefinition}
+                            sourceData={clusterElementTypeDefinition}
                             sourceNodeId={id}
                         >
                             <Button
                                 className="rounded-full px-2 hover:bg-surface-neutral-secondary-hover [&>svg]:max-w-4"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleSelectModel('CHAT_MEMORY');
+                                    handleClusterElementTypeClick('CHAT_MEMORY');
                                 }}
                                 variant="outline"
                             >
@@ -263,7 +255,7 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                         <WorkflowNodesPopoverMenu
                             agentData={agentData}
                             setAgentData={setAgentData}
-                            sourceData={aiAgentDefinition}
+                            sourceData={clusterElementTypeDefinition}
                             sourceNodeId={id}
                         >
                             <div className="flex items-center">
@@ -281,7 +273,7 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                                     )}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        handleSelectModel('TOOLS');
+                                        handleClusterElementTypeClick('TOOLS');
                                     }}
                                     variant="ghost"
                                 >

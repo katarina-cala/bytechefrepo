@@ -22,6 +22,7 @@ import getTaskDispatcherContext from '../utils/getTaskDispatcherContext';
 import handleTaskDispatcherClick from '../utils/handleTaskDispatcherClick';
 import WorkflowNodesPopoverMenuComponentList from './WorkflowNodesPopoverMenuComponentList';
 import WorkflowNodesPopoverMenuOperationList from './WorkflowNodesPopoverMenuOperationList';
+import saveWorkflowDefinition from '../utils/saveWorkflowDefinition';
 
 interface WorkflowNodesPopoverMenuProps extends PropsWithChildren {
     agentData?: AgentDataType;
@@ -136,6 +137,7 @@ const WorkflowNodesPopoverMenu = ({
     );
 
     const handleClusterElementClick = (data: ClusterElementDefinitionBasic) => {
+        console.log(data.name);
         if (agentData && setAgentData) {
             let value = data.componentName;
 
@@ -144,6 +146,13 @@ const WorkflowNodesPopoverMenu = ({
             }
 
             setAgentData({...agentData, [data.type]: value});
+
+            saveWorkflowDefinition({
+                nodeData: {...sourceNode?.data, clusterElements: [data]},
+                projectId: +projectId!,
+                queryClient,
+                updateWorkflowMutation,
+            });
         }
     };
 
