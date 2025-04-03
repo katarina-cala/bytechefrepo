@@ -20,31 +20,36 @@ import {useWorkflowMutation} from '../providers/workflowMutationProvider';
 import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 import getTaskDispatcherContext from '../utils/getTaskDispatcherContext';
 import handleTaskDispatcherClick from '../utils/handleTaskDispatcherClick';
+import saveWorkflowDefinition from '../utils/saveWorkflowDefinition';
 import WorkflowNodesPopoverMenuComponentList from './WorkflowNodesPopoverMenuComponentList';
 import WorkflowNodesPopoverMenuOperationList from './WorkflowNodesPopoverMenuOperationList';
-import saveWorkflowDefinition from '../utils/saveWorkflowDefinition';
+
+type ElementTypeKeysType = 'CHAT_MEMORY' | 'MODEL' | 'RAG';
+type AgentDataKeysType = 'chatMemory' | 'model' | 'rag';
 
 interface WorkflowNodesPopoverMenuProps extends PropsWithChildren {
-    agentData?: AgentDataType;
+    clusterElementsData?: AgentDataType;
+    conditionId?: string;
     edgeId?: string;
     hideActionComponents?: boolean;
     hideTriggerComponents?: boolean;
     hideTaskDispatchers?: boolean;
     nodeIndex?: number;
-    setAgentData?: (data: AgentDataType) => void;
+    setClusterElementsData?: (data: AgentDataType) => void;
     sourceData?: ClusterElementDefinitionBasic[];
     sourceNodeId: string;
 }
 
 const WorkflowNodesPopoverMenu = ({
-    agentData,
     children,
+    clusterElementsData,
+    conditionId,
     edgeId,
     hideActionComponents = false,
     hideTaskDispatchers = false,
     hideTriggerComponents = false,
     nodeIndex,
-    setAgentData,
+    setClusterElementsData,
     sourceData,
     sourceNodeId,
 }: WorkflowNodesPopoverMenuProps) => {
@@ -132,24 +137,100 @@ const WorkflowNodesPopoverMenu = ({
         [sourceNodeId, nodeIndex]
     );
 
-    const handleClusterElementClick = (data: ClusterElementDefinitionBasic) => {
-        console.log(data.name);
-        if (agentData && setAgentData) {
-            let value = data.componentName;
+    const getFormattedClusterElementName = (clusterElementName: string, clusterElementType: string) => {
+        const workflowDefinition = JSON.parse(workflow.definition!);
 
-            if (data.type === 'TOOLS') {
-                value = `${data.componentName}#${data.name}`;
+        const clusterElementNames = workflowDefinition.tasks.map((task) => {
+            let elementName = [];
+            if (task.clusterElements && task.clusterElements[clusterElementType]) {
+                if (clusterElementType === 'tools') {
+                    elementName = task.clusterElements.tools.map((tool) => {
+                        return tool.name;
+                    });
+                } else {
+                    elementName = task.clusterElements[clusterElementType].name;
+                }
             }
 
-            setAgentData({...agentData, [data.type]: value});
+            return elementName;
+        });
 
-            saveWorkflowDefinition({
-                nodeData: {...sourceNode?.data, clusterElements: [data]},
-                projectId: +projectId!,
-                queryClient,
-                updateWorkflowMutation,
-            });
+        const existingClusterElements = clusterElementNames.flatMap((names: string[]) => {
+            if (clusterElementType === 'tools') {
+                return names.filter((name: string) => name?.includes(clusterElementName));
+            }
+            return names?.includes(clusterElementName) ? [names] : [];
+        });
+
+        if (!existingClusterElements.length) {
+            return `${clusterElementName}_1`;
         }
+
+        const existingClusterElementsNumbers = existingClusterElements.map((name: string) => {
+            const nodeNameSplit = name.split('_');
+
+            return parseInt(nodeNameSplit[nodeNameSplit.length - 1]);
+        });
+
+        const maxExistingClusterElementNumber = Math.max(...existingClusterElementsNumbers);
+
+        return `${clusterElementName}_${maxExistingClusterElementNumber + 1}`;
+    };
+
+    const handleClusterElementClick = (data: ClusterElementDefinitionBasic) => {
+        if (!clusterElementsData || !setClusterElementsData || !sourceNode) return;
+
+        const updatedClusterElementsData: AgentDataType = {
+            chatMemory: clusterElementsData?.chatMemory || null,
+            model: clusterElementsData?.model || null,
+            rag: clusterElementsData?.rag || null,
+            tools: [...(clusterElementsData?.tools || [])],
+        };
+
+        const propertyMap: Record<ElementTypeKeysType, AgentDataKeysType> = {
+            CHAT_MEMORY: 'chatMemory',
+            MODEL: 'model',
+            RAG: 'rag',
+        };
+
+        if (data.type === 'TOOLS') {
+            updatedClusterElementsData.tools = [
+                ...(clusterElementsData.tools || []),
+                {
+                    label: data.title,
+                    name: getFormattedClusterElementName(data.name, 'tools'),
+                    parameters: {},
+                    type: `${data.componentName}/v${data.componentVersion}/${data.name}`,
+                },
+            ];
+        } else {
+            if (data.type in propertyMap) {
+                updatedClusterElementsData[propertyMap[data.type as ElementTypeKeysType]] = {
+                    label: data.title,
+                    name: getFormattedClusterElementName(
+                        data.componentName,
+                        propertyMap[data.type as ElementTypeKeysType]
+                    ),
+                    parameters: {},
+                    type: `${data.componentName}/v${data.componentVersion}/${propertyMap[data.type as ElementTypeKeysType]}`,
+                };
+            }
+        }
+
+        setClusterElementsData(updatedClusterElementsData);
+
+        saveWorkflowDefinition({
+            nodeData: {
+                ...sourceNode.data,
+                clusterElements: updatedClusterElementsData,
+                componentName: String(sourceNode.data.componentName),
+                name: String(sourceNode.data.name),
+                workflowNodeName: String(sourceNode.data.workflowNodeName),
+            },
+            projectId: +projectId!,
+            queryClient,
+            updateWorkflowMutation,
+        });
     };
 
     useEffect(() => {
@@ -198,13 +279,7 @@ const WorkflowNodesPopoverMenu = ({
                     {sourceData && sourceData.length > 0 && (
                         <div className="flex w-full flex-col">
                             <header className="flex items-center gap-1 rounded-t-lg bg-white p-3 text-center">
-                                <Input
-                                    disabled
-                                    // value={filter}
-                                    name="workflowNodeFilter"
-                                    // onChange={(event) => setFilter(event.target.value)}
-                                    placeholder="Search AI models"
-                                />
+                                <Input disabled name="workflowNodeFilter" placeholder="Search AI models" />
                             </header>
 
                             <ScrollArea className="w-full overflow-y-auto">

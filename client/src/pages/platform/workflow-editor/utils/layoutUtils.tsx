@@ -26,9 +26,9 @@ import {Edge, Node} from '@xyflow/react';
 import {ComponentIcon} from 'lucide-react';
 import InlineSVG from 'react-inlinesvg';
 
+import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 import {getConditionBranchSide} from './createConditionEdges';
 import {TASK_DISPATCHER_CONFIG, findParentTaskDispatcher} from './taskDispatcherConfig';
-import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 
 export const calculateNodeHeight = (node: Node) => {
     const isTopGhostNode = node.type === 'taskDispatcherTopGhostNode';
@@ -42,7 +42,11 @@ export const calculateNodeHeight = (node: Node) => {
     const aiAgentNodeHeight = 250;
 
     if (isPlaceholderNode || isGhostNode) {
-        height = PLACEHOLDER_NODE_HEIGHT;
+        if (node.id.includes('aiAgent')) {
+            height = 100;
+        } else {
+            height = PLACEHOLDER_NODE_HEIGHT;
+        }
 
         if (isBottomGhostNode) {
             height = NODE_HEIGHT;
@@ -71,13 +75,10 @@ export const convertTaskToNode = (
 
     const currentTask = workflowDefinition.tasks.find((workflowTask: WorkflowTask) => workflowTask.name === task.name);
 
-    const isClusterElement = Boolean(currentTask?.clusterElements);
-
     return {
         data: {
             ...task,
-            clusterElement: isClusterElement,
-            clusterElements: currentTask?.clusterElements,
+            clusterElements: currentTask?.clusterElements, //TODO: MAKNI OVO KAD IVICA DODA CLUSTER ELEMENTE U WORKFLOWTASK
             componentName,
             icon: (
                 <InlineSVG
@@ -187,6 +188,15 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], canvasWidth: n
         if (sourceEdges.length === 0 || !sourceNode) {
             return;
         }
+
+        const multipleEdgesAllowed = [
+            {
+                condition: sourceNode.type === 'taskDispatcherTopGhostNode',
+            },
+            {
+                condition: sourceNode.data.componentName === 'aiAgent',
+            },
+        ];
 
         const isSourceTaskDispatcherTopGhostNode = sourceNode.type === 'taskDispatcherTopGhostNode';
 

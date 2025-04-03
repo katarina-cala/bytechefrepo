@@ -7,12 +7,12 @@ import {
 } from '@/shared/middleware/platform/configuration';
 import {ClusterElementDefinitionKeys} from '@/shared/queries/platform/clusterElemetDefinitions.queries';
 import {useGetWorkflowNodeDescriptionQuery} from '@/shared/queries/platform/workflowNodeDescriptions.queries';
-import {NodeDataType} from '@/shared/types';
+import {ClusterElementItemType, NodeDataType} from '@/shared/types';
 import {HoverCardPortal} from '@radix-ui/react-hover-card';
 import {useQueryClient} from '@tanstack/react-query';
 import {Handle, Position} from '@xyflow/react';
-import {ComponentIcon, DatabaseIcon, MemoryStick, PencilIcon, PlusIcon, TrashIcon} from 'lucide-react';
-import {memo, useState} from 'react';
+import {ComponentIcon, CpuIcon, DatabaseIcon, MemoryStick, PencilIcon, PlusIcon, TrashIcon} from 'lucide-react';
+import {memo, useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
 import sanitize from 'sanitize-html';
 import {twMerge} from 'tailwind-merge';
@@ -26,21 +26,19 @@ import handleDeleteTask from '../utils/handleDeleteTask';
 import styles from './NodeTypes.module.css';
 
 export type AgentDataType = {
-    CHAT_MEMORY: string;
-    MODEL: string;
-    RAG: string;
-    TOOLS: string;
+    chatMemory?: ClusterElementItemType | null;
+    model?: ClusterElementItemType | null;
+    rag?: ClusterElementItemType | null;
+    tools?: ClusterElementItemType[] | null;
 };
 
 const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
-    const [clusterElementTypeDefinition, setClusterElementTypeDefinition] = useState<ClusterElementDefinitionBasic[]>(
-        []
-    );
-    const [agentData, setAgentData] = useState<AgentDataType>({
-        CHAT_MEMORY: '',
-        MODEL: '',
-        RAG: '',
-        TOOLS: '',
+    const [clusterElementDefinition, setClusterElementDefinition] = useState<ClusterElementDefinitionBasic[]>([]);
+    const [clusterElementsData, setClusterElementsData] = useState<AgentDataType>({
+        chatMemory: null,
+        model: null,
+        rag: null,
+        tools: [],
     });
     const [isHovered, setIsHovered] = useState(false);
     const [hoveredNodeName, setHoveredNodeName] = useState<string | undefined>();
@@ -80,9 +78,9 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
         }
     };
 
-    const handleClusterElementTypeClick = (model: string) => {
+    const handlePopoverMenuClusterElementClick = (type: string) => {
         const rootComponentClusterElementDefinitionRequest: GetRootComponentClusterElementDefinitionsRequest = {
-            clusterElementType: model,
+            clusterElementType: type,
             rootComponentName: data?.componentName || '',
             rootComponentVersion: data.version || 1,
         };
@@ -98,24 +96,33 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                 ),
             });
 
-            setClusterElementTypeDefinition(rootComponentClusterElementDefinition);
+            setClusterElementDefinition(rootComponentClusterElementDefinition);
         };
 
         fetchRootComponentClusterElementDefinition();
     };
 
-    console.log('cluster element type definition', clusterElementTypeDefinition);
+    useEffect(() => {
+        if (data.clusterElements) {
+            setClusterElementsData({
+                chatMemory: data.clusterElements.chatMemory || null,
+                model: data.clusterElements.model || null,
+                rag: data.clusterElements.rag || null,
+                tools: data.clusterElements.tools || [],
+            });
+        }
+    }, [data.clusterElements]);
 
-    const agentModel = data.clusterElements?.model?.type.split('/')[0];
+    const getElementDisplayName = (element: ClusterElementItemType | null | undefined): string | undefined => {
+        if (!element) return undefined;
 
-    const agentMemory = data.clusterElements?.chatMemory?.type.split('/')[0];
+        return element.label ? element.label.split('_')[0] : element.name.split('_')[0];
+    };
 
-    const agentRetrieval = data.clusterElements?.RAG?.type.split('/')[0];
-
-    const agentTools = data.clusterElements?.tools.map((tool) => {
-        const toolName = tool.name;
-        return toolName;
-    });
+    const agentModelName = getElementDisplayName(clusterElementsData?.model);
+    const agentMemoryName = getElementDisplayName(clusterElementsData?.chatMemory);
+    const agentRagName = getElementDisplayName(clusterElementsData?.rag);
+    const agentToolNames = clusterElementsData?.tools?.map((tool) => getElementDisplayName(tool)).filter(Boolean);
 
     return (
         <div
@@ -163,56 +170,62 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                     }
                 }}
             >
-                <Button
+                <div
                     className={twMerge(
-                        'size-18 flex flex-col items-start rounded-md border-2 border-gray-300 bg-background p-2 text-content-neutral-primary shadow hover:bg-background hover:shadow-none [&_svg]:size-8',
+                        'size-18 flex cursor-pointer flex-col items-start gap-2 rounded-md border-2 border-gray-300 bg-background p-4 text-content-neutral-primary shadow hover:bg-background hover:shadow-none [&_svg]:size-8',
                         isSelected && workflowNodeDetailsPanelOpen && 'border-blue-300 bg-background shadow-none'
                     )}
                     onClick={handleNodeClick}
                 >
-                    <div className="flex w-full flex-1 items-center justify-between px-1">
+                    <div className="flex w-full flex-1 items-center justify-between">
                         <HoverCardTrigger>
-                            <div> {data.icon} </div>
+                            <div> {data.icon!} </div>
                         </HoverCardTrigger>
 
                         <WorkflowNodesPopoverMenu
-                            agentData={agentData}
-                            setAgentData={setAgentData}
-                            sourceData={clusterElementTypeDefinition}
+                            clusterElementsData={clusterElementsData}
+                            setClusterElementsData={setClusterElementsData}
+                            sourceData={clusterElementDefinition}
                             sourceNodeId={id}
                         >
                             <Button
-                                className="[&>span]:line-clamp-0 border border-stroke-neutral-secondary bg-background px-3 py-2 text-content-neutral-primary shadow-none hover:bg-surface-neutral-primary-hover [&>span]:truncate [&>svg]:max-w-4"
+                                className="[&>span]:line-clamp-0 w-1/2 border border-stroke-neutral-secondary bg-background px-3 py-2 text-content-neutral-primary shadow-none hover:bg-surface-neutral-primary-hover [&>span]:truncate [&>svg]:max-w-4"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleClusterElementTypeClick('MODEL');
+                                    handlePopoverMenuClusterElementClick('MODEL');
                                 }}
                             >
-                                {agentModel ? agentModel : agentData.MODEL ? agentData.MODEL : 'Model'}
+                                {clusterElementsData.model ? (
+                                    <>
+                                        <ComponentIcon /> {agentModelName}
+                                    </>
+                                ) : (
+                                    <>
+                                        <CpuIcon /> Model
+                                    </>
+                                )}
                             </Button>
                         </WorkflowNodesPopoverMenu>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex w-full justify-between gap-1">
                         <WorkflowNodesPopoverMenu
-                            agentData={agentData}
-                            setAgentData={setAgentData}
-                            sourceData={clusterElementTypeDefinition}
+                            clusterElementsData={clusterElementsData}
+                            setClusterElementsData={setClusterElementsData}
+                            sourceData={clusterElementDefinition}
                             sourceNodeId={id}
                         >
                             <Button
                                 className="rounded-full px-2 font-medium hover:bg-surface-neutral-secondary-hover [&>svg]:max-w-4"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleClusterElementTypeClick('RAG');
+                                    handlePopoverMenuClusterElementClick('RAG');
                                 }}
                                 variant="outline"
                             >
-                                {agentRetrieval ? (
-                                    agentRetrieval
-                                ) : agentData.RAG ? (
+                                {clusterElementsData.rag ? (
                                     <>
-                                        <ComponentIcon /> {agentData.RAG}
+                                        <ComponentIcon /> {agentRagName}
                                     </>
                                 ) : (
                                     <>
@@ -223,24 +236,22 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                         </WorkflowNodesPopoverMenu>
 
                         <WorkflowNodesPopoverMenu
-                            agentData={agentData}
-                            setAgentData={setAgentData}
-                            sourceData={clusterElementTypeDefinition}
+                            clusterElementsData={clusterElementsData}
+                            setClusterElementsData={setClusterElementsData}
+                            sourceData={clusterElementDefinition}
                             sourceNodeId={id}
                         >
                             <Button
                                 className="rounded-full px-2 hover:bg-surface-neutral-secondary-hover [&>svg]:max-w-4"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleClusterElementTypeClick('CHAT_MEMORY');
+                                    handlePopoverMenuClusterElementClick('CHAT_MEMORY');
                                 }}
                                 variant="outline"
                             >
-                                {agentMemory ? (
-                                    agentMemory
-                                ) : agentData.CHAT_MEMORY ? (
+                                {clusterElementsData.chatMemory ? (
                                     <>
-                                        <ComponentIcon /> {agentData.CHAT_MEMORY}
+                                        <ComponentIcon /> {agentMemoryName}
                                     </>
                                 ) : (
                                     <>
@@ -251,49 +262,40 @@ const AIAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                         </WorkflowNodesPopoverMenu>
                     </div>
 
-                    <div>
+                    <div className="flex w-full items-center">
+                        {agentToolNames &&
+                            agentToolNames.map((tool, index) => (
+                                <Button key={index} variant="ghost">
+                                    {tool}
+                                </Button>
+                            ))}
+
                         <WorkflowNodesPopoverMenu
-                            agentData={agentData}
-                            setAgentData={setAgentData}
-                            sourceData={clusterElementTypeDefinition}
+                            clusterElementsData={clusterElementsData}
+                            setClusterElementsData={setClusterElementsData}
+                            sourceData={clusterElementDefinition}
                             sourceNodeId={id}
                         >
-                            <div className="flex items-center">
-                                {agentTools &&
-                                    agentTools.map((tool, index) => (
-                                        <Button key={index} variant="ghost">
-                                            {tool}
-                                        </Button>
-                                    ))}
+                            <Button
+                                className={twMerge(
+                                    'rounded-full bg-surface-neutral-secondary px-3 hover:bg-surface-neutral-secondary-hover [&>svg]:max-w-4',
+                                    !!agentToolNames?.length && 'rounded-full p-3'
+                                )}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePopoverMenuClusterElementClick('TOOLS');
+                                }}
+                                variant="ghost"
+                            >
+                                <PlusIcon className="size-4" />
 
-                                <Button
-                                    className={twMerge(
-                                        'rounded-full bg-surface-neutral-secondary px-3 hover:bg-surface-neutral-secondary-hover [&>svg]:max-w-4',
-                                        agentTools && 'rounded-full p-3'
-                                    )}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleClusterElementTypeClick('TOOLS');
-                                    }}
-                                    variant="ghost"
-                                >
-                                    {agentData.TOOLS ? (
-                                        <>
-                                            <ComponentIcon /> {agentData.TOOLS}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <PlusIcon className="size-4" />
-                                            <span className={twMerge(agentTools ? 'hidden' : 'inline-block')}>
-                                                Tool
-                                            </span>
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
+                                <span className={twMerge(agentToolNames?.length ? 'hidden' : 'inline-block')}>
+                                    Tool
+                                </span>
+                            </Button>
                         </WorkflowNodesPopoverMenu>
                     </div>
-                </Button>
+                </div>
 
                 <HoverCardPortal>
                     <HoverCardContent className="absolute left-56 w-fit min-w-72 max-w-xl text-sm" side="right">
