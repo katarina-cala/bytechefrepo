@@ -115,7 +115,21 @@ export type ConditionDataType = {
     index: number;
 };
 
+export type ClusterElementItemType = {
+    label?: string;
+    name: string;
+    type: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    parameters?: {[key: string]: any};
+};
+
 export type NodeDataType = {
+    clusterElements?: {
+        chatMemory?: ClusterElementItemType | null;
+        model?: ClusterElementItemType | null;
+        rag?: ClusterElementItemType | null;
+        tools?: ClusterElementItemType[] | null;
+    };
     componentName: string;
     conditionCase?: 'caseTrue' | 'caseFalse';
     conditionData?: ConditionDataType;

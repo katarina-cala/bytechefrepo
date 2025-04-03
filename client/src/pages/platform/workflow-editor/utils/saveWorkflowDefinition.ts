@@ -134,7 +134,7 @@ export default async function saveWorkflowDefinition({
         name,
         parameters,
         type: type ?? `${componentName}/v${version}/${operationName}`,
-    };
+    } as WorkflowTask;
 
     console.log('newTask', newTask);
 
@@ -147,7 +147,9 @@ export default async function saveWorkflowDefinition({
         (!operationName ||
             (existingWorkflowTask.parameters &&
                 JSON.stringify(existingWorkflowTask.parameters) === JSON.stringify(newTask.parameters))) &&
-        existingWorkflowTask.type === newTask.type
+        existingWorkflowTask.type === newTask.type &&
+        existingWorkflowTask.clusterElements &&
+        JSON.stringify(existingWorkflowTask.clusterElements) === JSON.stringify(newTask.clusterElements)
     ) {
         return;
     }

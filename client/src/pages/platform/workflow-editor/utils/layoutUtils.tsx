@@ -6,6 +6,7 @@ import {
     NODE_HEIGHT,
     NODE_WIDTH,
     PLACEHOLDER_NODE_HEIGHT,
+    ROOT_CLUSTER_TASK_NAMES,
     TASK_DISPATCHER_NAMES,
 } from '@/shared/constants';
 import {
@@ -19,9 +20,9 @@ import {Edge, Node} from '@xyflow/react';
 import {ComponentIcon} from 'lucide-react';
 import InlineSVG from 'react-inlinesvg';
 
+import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 import {getConditionBranchSide} from './createConditionEdges';
 import {TASK_DISPATCHER_CONFIG, findParentTaskDispatcher} from './taskDispatcherConfig';
-import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 
 export const calculateNodeHeight = (node: Node) => {
     const isTopGhostNode = node.type === 'taskDispatcherTopGhostNode';
@@ -62,15 +63,21 @@ export const convertTaskToNode = (
 
     const workflowDefinition = JSON.parse(workflow.definition!);
 
+    // console.log(task.name, 'workflowDefinition', workflowDefinition.tasks[0].clusterElements);
+
+    // console.log('task.name', task.name);
+    // console.log('workflowDefinition.tasks', workflowDefinition.tasks);
+
     const currentTask = workflowDefinition.tasks.find((workflowTask: WorkflowTask) => workflowTask.name === task.name);
 
-    const isClusterElement = Boolean(currentTask?.clusterElements);
+    // const isClusterElement = Boolean(currentTask?.clusterElements);
+
+    // console.log('ELEMENTI', currentTask?.clusterElements);
 
     return {
         data: {
             ...task,
-            clusterElement: isClusterElement,
-            clusterElements: currentTask?.clusterElements,
+            clusterElements: currentTask?.clusterElements, //TODO: MAKNI OVO KAD IVICA DODA CLUSTER ELEMENTE U WORKFLOWTASK
             componentName,
             icon: (
                 <InlineSVG
