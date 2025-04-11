@@ -24,6 +24,8 @@ import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 import useWorkflowNodeDetailsPanelStore from '../stores/useWorkflowNodeDetailsPanelStore';
 import handleDeleteTask from '../utils/handleDeleteTask';
 import styles from './NodeTypes.module.css';
+import {Dialog, DialogTrigger} from '@/components/ui/dialog';
+import useWorkflowEditorStore from '../stores/useWorkflowEditorStore';
 
 export type AgentDataType = {
     chatMemory?: ClusterElementItemType | null;

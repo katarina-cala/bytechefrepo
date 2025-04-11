@@ -6,7 +6,6 @@ import {
     NODE_HEIGHT,
     NODE_WIDTH,
     PLACEHOLDER_NODE_HEIGHT,
-    ROOT_CLUSTER_TASK_NAMES,
     TASK_DISPATCHER_NAMES,
 } from '@/shared/constants';
 import {
@@ -36,7 +35,11 @@ export const calculateNodeHeight = (node: Node) => {
     const aiAgentNodeHeight = 250;
 
     if (isPlaceholderNode || isGhostNode) {
-        height = PLACEHOLDER_NODE_HEIGHT;
+        if (node.id.includes('aiAgent')) {
+            height = 100;
+        } else {
+            height = PLACEHOLDER_NODE_HEIGHT;
+        }
 
         if (isBottomGhostNode) {
             height = NODE_HEIGHT;
@@ -63,16 +66,7 @@ export const convertTaskToNode = (
 
     const workflowDefinition = JSON.parse(workflow.definition!);
 
-    // console.log(task.name, 'workflowDefinition', workflowDefinition.tasks[0].clusterElements);
-
-    // console.log('task.name', task.name);
-    // console.log('workflowDefinition.tasks', workflowDefinition.tasks);
-
     const currentTask = workflowDefinition.tasks.find((workflowTask: WorkflowTask) => workflowTask.name === task.name);
-
-    // const isClusterElement = Boolean(currentTask?.clusterElements);
-
-    // console.log('ELEMENTI', currentTask?.clusterElements);
 
     return {
         data: {
@@ -187,9 +181,16 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], canvasWidth: n
             return;
         }
 
-        const isSourceTaskDispatcherTopGhostNode = sourceNode.type === 'taskDispatcherTopGhostNode';
+        const multipleEdgesAllowed = [
+            {
+                condition: sourceNode.type === 'taskDispatcherTopGhostNode',
+            },
+            {
+                condition: sourceNode.data.componentName === 'aiAgent',
+            },
+        ];
 
-        if (isSourceTaskDispatcherTopGhostNode) {
+        if (multipleEdgesAllowed.some(({condition}) => condition)) {
             filteredEdges.push(...sourceEdges);
         } else {
             filteredEdges.push(sourceEdges[0]);
