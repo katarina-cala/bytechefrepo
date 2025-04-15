@@ -29,7 +29,6 @@ type AgentDataKeysType = 'chatMemory' | 'model' | 'rag';
 
 interface WorkflowNodesPopoverMenuProps extends PropsWithChildren {
     clusterElementsData?: AgentDataType;
-    conditionId?: string;
     edgeId?: string;
     hideActionComponents?: boolean;
     hideTriggerComponents?: boolean;
@@ -43,7 +42,6 @@ interface WorkflowNodesPopoverMenuProps extends PropsWithChildren {
 const WorkflowNodesPopoverMenu = ({
     children,
     clusterElementsData,
-    conditionId,
     edgeId,
     hideActionComponents = false,
     hideTaskDispatchers = false,

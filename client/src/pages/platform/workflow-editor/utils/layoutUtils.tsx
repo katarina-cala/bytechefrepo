@@ -196,13 +196,12 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], canvasWidth: n
             {
                 condition: sourceNode.data.componentName === 'aiAgent',
             },
+            {
+                condition: sourceNode.data.componentName === 'branch',
+            },
         ];
 
-        const isSourceTaskDispatcherTopGhostNode = sourceNode.type === 'taskDispatcherTopGhostNode';
-
-        const isSourceBranchNode = sourceNode.data.componentName === 'branch';
-
-        if (isSourceTaskDispatcherTopGhostNode || isSourceBranchNode) {
+        if (multipleEdgesAllowed.some(({condition}) => condition)) {
             filteredEdges.push(...sourceEdges);
         } else {
             filteredEdges.push(sourceEdges[0]);

@@ -136,8 +136,6 @@ export default async function saveWorkflowDefinition({
         type: type ?? `${componentName}/v${version}/${operationName}`,
     };
 
-    console.log('newTask', newTask);
-
     const existingWorkflowTask = workflowDefinition.tasks?.find((task) => task.name === newTask.name);
 
     const differenceInCaseCount =

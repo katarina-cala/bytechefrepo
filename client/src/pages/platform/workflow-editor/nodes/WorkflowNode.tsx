@@ -7,7 +7,7 @@ import {NodeDataType} from '@/shared/types';
 import {HoverCard, HoverCardPortal} from '@radix-ui/react-hover-card';
 import {useQueryClient} from '@tanstack/react-query';
 import {Handle, Position} from '@xyflow/react';
-import {PencilIcon, TrashIcon} from 'lucide-react';
+import {ComponentIcon, PencilIcon, TrashIcon} from 'lucide-react';
 import {memo, useState} from 'react';
 import {useParams} from 'react-router-dom';
 import sanitize from 'sanitize-html';
@@ -111,7 +111,7 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                         )}
                         onClick={handleNodeClick}
                     >
-                        {data.icon}
+                        {!data.icon ? <ComponentIcon className="size-9 text-black" /> : data.icon}
                     </Button>
                 </HoverCardTrigger>
 
