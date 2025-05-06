@@ -14,14 +14,12 @@ import {useShallow} from 'zustand/react/shallow';
 import WorkflowNodesPopoverMenu from '../components/WorkflowNodesPopoverMenu';
 import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 import useWorkflowEditorStore from '../stores/useWorkflowEditorStore';
-import useWorkflowNodeDetailsPanelStore from '../stores/useWorkflowNodeDetailsPanelStore';
 import styles from './NodeTypes.module.css';
 
 const PlaceholderNode = ({data, id}: {data: NodeDataType; id: string}) => {
     const [isDropzoneActive, setDropzoneActive] = useState(false);
     const [clusterElementDefinition, setClusterElementDefinition] = useState<ClusterElementDefinitionBasic[]>([]);
 
-    const {currentNode} = useWorkflowNodeDetailsPanelStore();
     const {aiAgentNodeData} = useWorkflowEditorStore.getState();
 
     const {nodes} = useWorkflowDataStore(
@@ -37,8 +35,8 @@ const PlaceholderNode = ({data, id}: {data: NodeDataType; id: string}) => {
     const handlePopoverMenuClusterElementClick = (type: string) => {
         const rootComponentClusterElementDefinitionRequest: GetRootComponentClusterElementDefinitionsRequest = {
             clusterElementType: type,
-            rootComponentName: currentNode?.componentName || '',
-            rootComponentVersion: data.version || 1,
+            rootComponentName: aiAgentNodeData?.componentName || '',
+            rootComponentVersion: aiAgentNodeData?.version || 1,
         };
 
         const fetchRootComponentClusterElementDefinition = async () => {

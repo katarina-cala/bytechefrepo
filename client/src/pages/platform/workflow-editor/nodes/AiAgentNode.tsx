@@ -182,7 +182,8 @@ const AiAgentNode = ({data, id}: {data: NodeDataType; id: string}) => {
                             >
                                 {agentModelName ? (
                                     <>
-                                        <ComponentIcon /> {agentModelName}
+                                        <div className="size-9">{data.clusterElements?.model?.icon}</div>
+                                        {agentModelName}
                                     </>
                                 ) : (
                                     <>

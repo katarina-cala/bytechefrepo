@@ -11,22 +11,26 @@ import useWorkflowNodeDetailsPanelStore from '../stores/useWorkflowNodeDetailsPa
 import {TASK_DISPATCHER_CONFIG} from './taskDispatcherConfig';
 
 interface HandleDeleteTaskProps {
+    aiAgentNodeData?: NodeDataType;
     aiAgentOpen?: boolean;
     currentNode?: NodeDataType;
     data: NodeDataType;
     projectId: number;
     queryClient: QueryClient;
+    setAiAgentNodeData?: (node: NodeDataType) => void;
     setCurrentNode?: (node: NodeDataType) => void;
     updateWorkflowMutation: UseMutationResult<void, unknown, {id: string; workflow: Workflow}>;
     workflow: Workflow & WorkflowTaskDataType;
 }
 
 export default function handleDeleteTask({
+    aiAgentNodeData,
     aiAgentOpen,
     currentNode,
     data,
     projectId,
     queryClient,
+    setAiAgentNodeData,
     setCurrentNode,
     updateWorkflowMutation,
     workflow,
@@ -126,14 +130,13 @@ export default function handleDeleteTask({
 
             return parentBranchTask;
         }) as Array<WorkflowTaskType>;
-    } else if (aiAgentOpen && currentNode?.name.includes('aiAgent')) {
+    } else if (aiAgentOpen && aiAgentNodeData) {
         const currentClusterElementType = data.clusterElementType;
         const clusterElementName = data.name;
-        const parentAiAgentTask = workflowTasks.find((task) => task.name === currentNode?.name);
+        const parentAiAgentTask = workflowTasks.find((task) => task.name === aiAgentNodeData?.name);
+        const updatedClusterElements = {...aiAgentNodeData.clusterElements};
 
-        if (parentAiAgentTask?.clusterElements && setCurrentNode && currentClusterElementType) {
-            const updatedClusterElements = {...currentNode.clusterElements};
-
+        if (parentAiAgentTask && parentAiAgentTask.clusterElements) {
             if (currentClusterElementType === 'tools') {
                 updatedClusterElements.tools = (parentAiAgentTask.clusterElements.tools || []).filter(
                     (tool) => tool.name !== clusterElementName
@@ -148,11 +151,27 @@ export default function handleDeleteTask({
                     currentClusterElementType as keyof typeof parentAiAgentTask.clusterElements
                 ] = null;
             }
+        }
 
-            setCurrentNode({
-                ...currentNode,
-                clusterElements: updatedClusterElements,
-            });
+        if (setAiAgentNodeData && setCurrentNode) {
+            if (currentNode?.name.includes('aiAgent')) {
+                setCurrentNode({
+                    ...currentNode,
+                    clusterElements: updatedClusterElements,
+                });
+            } else {
+                setAiAgentNodeData({
+                    ...aiAgentNodeData,
+                    clusterElements: updatedClusterElements,
+                });
+            }
+
+            if (currentNode?.name === data.name) {
+                setCurrentNode({
+                    ...aiAgentNodeData,
+                    clusterElements: updatedClusterElements,
+                });
+            }
         }
 
         updatedTasks = workflowTasks.map((task) => {
@@ -198,7 +217,7 @@ export default function handleDeleteTask({
                     queryKey: ProjectWorkflowKeys.workflows,
                 });
 
-                if (currentNode?.name === data.name) {
+                if (currentNode?.name === data.name && !currentNode.clusterElementType) {
                     useWorkflowNodeDetailsPanelStore.getState().reset();
                     useWorkflowTestChatStore.getState().setWorkflowTestChatPanelOpen(false);
                 }

@@ -11,6 +11,7 @@ import {ClickedDefinitionType, ClusterElementsType} from '@/shared/types';
 import {useQueryClient} from '@tanstack/react-query';
 import {ComponentIcon} from 'lucide-react';
 import {PropsWithChildren, useCallback, useEffect, useMemo, useState} from 'react';
+import InlineSVG from 'react-inlinesvg';
 import {useParams} from 'react-router-dom';
 import {twMerge} from 'tailwind-merge';
 import {useShallow} from 'zustand/react/shallow';
@@ -196,7 +197,17 @@ const WorkflowNodesPopoverMenu = ({
                                                 }
                                             }}
                                         >
-                                            {data.icon ? data.icon : <ComponentIcon />}
+                                            {data.icon ? (
+                                                <InlineSVG
+                                                    className="size-9"
+                                                    loader={
+                                                        <ComponentIcon className="size-9 flex-none text-gray-900" />
+                                                    }
+                                                    src={data.icon as string}
+                                                />
+                                            ) : (
+                                                <ComponentIcon className="size-9 flex-none text-gray-900" />
+                                            )}
 
                                             <div className="flex flex-col gap-2 text-start">
                                                 <div>

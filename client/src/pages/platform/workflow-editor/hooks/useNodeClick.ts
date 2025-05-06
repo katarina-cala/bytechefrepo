@@ -4,6 +4,7 @@ import {NodeProps} from '@xyflow/react';
 import {useCallback} from 'react';
 import {useShallow} from 'zustand/react/shallow';
 
+import useAiAgentDataStore from '../../ai-agent-editor/stores/useAiAgentDataStore';
 import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 import useWorkflowEditorStore from '../stores/useWorkflowEditorStore';
 import useWorkflowNodeDetailsPanelStore from '../stores/useWorkflowNodeDetailsPanelStore';
@@ -19,14 +20,27 @@ export default function useNodeClick(data: NodeDataType, id: NodeProps['id'], ac
         }))
     );
 
-    const {setAiAgentOpen} = useWorkflowEditorStore();
+    const {nodes: aiAgentCanvasNodes} = useAiAgentDataStore(
+        useShallow((state) => ({
+            nodes: state.nodes,
+        }))
+    );
+
+    const {aiAgentOpen, setAiAgentOpen} = useWorkflowEditorStore();
 
     return useCallback(() => {
         const clickedNode = nodes.find((node) => node.id === id);
+        const clickedNodeInAiAgentCanvas = aiAgentCanvasNodes.find((node) => node.id === id);
 
-        if (!clickedNode) {
+        if (!aiAgentOpen && !clickedNode) {
             return;
         }
+
+        if (aiAgentOpen && !clickedNodeInAiAgentCanvas) {
+            return;
+        }
+
+        console.log('data in use node click:', data);
 
         setRightSidebarOpen(false);
         setActiveTab(activeTab ?? 'description');
@@ -34,10 +48,9 @@ export default function useNodeClick(data: NodeDataType, id: NodeProps['id'], ac
 
         if (data.componentName === 'aiAgent') {
             setAiAgentOpen(true);
-            setWorkflowNodeDetailsPanelOpen(true);
-        } else {
-            setWorkflowNodeDetailsPanelOpen(true);
         }
+
+        setWorkflowNodeDetailsPanelOpen(true);
 
         if (data.type) {
             setCurrentComponent({
@@ -47,6 +60,8 @@ export default function useNodeClick(data: NodeDataType, id: NodeProps['id'], ac
         }
     }, [
         nodes,
+        aiAgentCanvasNodes,
+        aiAgentOpen,
         setRightSidebarOpen,
         setActiveTab,
         activeTab,

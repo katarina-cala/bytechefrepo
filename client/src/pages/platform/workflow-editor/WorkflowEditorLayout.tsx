@@ -35,6 +35,7 @@ const WorkflowEditorLayout = () => {
     const {rightSidebarOpen} = useRightSidebarStore();
     const {workflow} = useWorkflowDataStore();
     const {
+        aiAgentNodeData,
         aiAgentOpen,
         setAiAgentNodeData,
         setAiAgentOpen,
@@ -74,6 +75,9 @@ const WorkflowEditorLayout = () => {
             setAiAgentNodeData(currentNode);
         }
     }, [currentNode, setAiAgentNodeData]);
+
+    // console.log('current node', currentNode);
+    // console.log('ai agent node data', aiAgentNodeData);
 
     return (
         <ReactFlowProvider>

@@ -133,6 +133,7 @@ type LoopBreakDataType = {
 export type TaskDispatcherDataType = BranchDataType & LoopDataType & LoopBreakDataType & ConditionDataType;
 
 export type ClusterElementItemType = {
+    icon?: JSX.Element | ReactNode | string;
     label?: string;
     name: string;
     type: string;

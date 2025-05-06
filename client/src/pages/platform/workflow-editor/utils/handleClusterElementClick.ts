@@ -33,6 +33,8 @@ export default function handleClusterElementClick({
     const {aiAgentNodeData, setAiAgentNodeData} = useWorkflowEditorStore.getState();
     const {currentNode, setCurrentNode} = useWorkflowNodeDetailsPanelStore.getState();
 
+    console.log('current node in handleClusterElementClick:', currentNode);
+
     const updatedClusterElementsData: ClusterElementsType = {
         rag: clusterElementsData.rag
             ? {
@@ -78,10 +80,11 @@ export default function handleClusterElementClick({
     };
 
     if (data.type === 'TOOLS') {
+        // console.log('data in cluster element CLICK', data);
         updatedClusterElementsData.tools = [
             ...(updatedClusterElementsData.tools || []),
             {
-                label: data.title,
+                label: data.componentName,
                 name: getFormattedClusterElementName(data.name, 'tools'),
                 parameters: {},
                 type: `${data.componentName}/v${data.componentVersion}/${data.name}`,

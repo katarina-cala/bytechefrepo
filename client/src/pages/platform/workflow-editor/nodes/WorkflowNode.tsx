@@ -7,7 +7,10 @@ import {
     ClusterElementDefinitionBasic,
     GetRootComponentClusterElementDefinitionsRequest,
 } from '@/shared/middleware/platform/configuration';
-import {ClusterElementDefinitionKeys} from '@/shared/queries/platform/clusterElementDefinitions.queries';
+import {
+    ClusterElementDefinitionKeys,
+    useGetClusterElementDefinitionQuery,
+} from '@/shared/queries/platform/clusterElementDefinitions.queries';
 import {useGetWorkflowNodeDescriptionQuery} from '@/shared/queries/platform/workflowNodeDescriptions.queries';
 import {NodeDataType} from '@/shared/types';
 import {HoverCard, HoverCardPortal} from '@radix-ui/react-hover-card';
@@ -33,7 +36,7 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
 
     const {currentNode, setCurrentNode, workflowNodeDetailsPanelOpen} = useWorkflowNodeDetailsPanelStore();
     const {workflow} = useWorkflowDataStore();
-    const {aiAgentNodeData, aiAgentOpen} = useWorkflowEditorStore();
+    const {aiAgentNodeData, aiAgentOpen, setAiAgentNodeData} = useWorkflowEditorStore();
 
     const handleNodeClick = useNodeClickHandler(data, id);
 
@@ -43,6 +46,15 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
         {
             id: workflow.id!,
             workflowNodeName: hoveredNodeName!,
+        },
+        hoveredNodeName !== undefined && !data.clusterElementType
+    );
+
+    const {data: clusterElementDefinitionData} = useGetClusterElementDefinitionQuery(
+        {
+            componentName: data.componentName,
+            componentVersion: data.componentVersion,
+            clusterElementName: data.clusterElementName,
         },
         hoveredNodeName !== undefined
     );
@@ -59,11 +71,13 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
     const handleDeleteNodeClick = (data: NodeDataType) => {
         if (data) {
             handleDeleteTask({
+                aiAgentNodeData,
                 aiAgentOpen,
                 currentNode,
                 data,
                 projectId: +projectId!,
                 queryClient,
+                setAiAgentNodeData,
                 setCurrentNode,
                 updateWorkflowMutation,
                 workflow,
@@ -74,8 +88,8 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
     const handlePopoverMenuClusterElementClick = (type: string) => {
         const rootComponentClusterElementDefinitionRequest: GetRootComponentClusterElementDefinitionsRequest = {
             clusterElementType: type,
-            rootComponentName: currentNode?.componentName || '',
-            rootComponentVersion: data.version || 1,
+            rootComponentName: aiAgentNodeData?.componentName || '',
+            rootComponentVersion: aiAgentNodeData?.version || 1,
         };
 
         const fetchRootComponentClusterElementDefinition = async () => {
@@ -96,6 +110,11 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
     };
 
     const clusterElementsData = aiAgentNodeData?.clusterElements;
+
+    const nodeDescription =
+        workflowNodeDescription?.description && !data.clusterElementType
+            ? workflowNodeDescription.description
+            : clusterElementDefinitionData?.description;
 
     return (
         <div
@@ -140,7 +159,7 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                         <WorkflowNodesPopoverMenu
                             clusterElementsData={clusterElementsData}
                             sourceData={clusterElementDefinition}
-                            sourceNodeId={currentNode.name}
+                            sourceNodeId={aiAgentNodeData ? aiAgentNodeData.name : id}
                         >
                             <Button
                                 className="bg-white p-2 shadow-md hover:text-blue-500 hover:shadow-sm"
@@ -199,11 +218,11 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
 
                 <HoverCardPortal>
                     <HoverCardContent className="w-fit min-w-72 max-w-xl text-sm" side="right">
-                        {workflowNodeDescription?.description && (
+                        {nodeDescription && (
                             <div
                                 className="flex"
                                 dangerouslySetInnerHTML={{
-                                    __html: sanitize(workflowNodeDescription.description, {
+                                    __html: sanitize(nodeDescription, {
                                         allowedAttributes: {
                                             div: ['class'],
                                             table: ['class'],
