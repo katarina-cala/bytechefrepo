@@ -33,7 +33,8 @@ export default function handleClusterElementClick({
     const {aiAgentNodeData, setAiAgentNodeData} = useWorkflowEditorStore.getState();
     const {currentNode, setCurrentNode} = useWorkflowNodeDetailsPanelStore.getState();
 
-    console.log('current node in handleClusterElementClick:', currentNode);
+    // console.log('current node in handleClusterElementClick:', currentNode);
+    // console.log('cluster elements data HANDLE', data);
 
     const updatedClusterElementsData: ClusterElementsType = {
         rag: clusterElementsData.rag

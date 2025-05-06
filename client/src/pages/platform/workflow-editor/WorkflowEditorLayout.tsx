@@ -35,7 +35,6 @@ const WorkflowEditorLayout = () => {
     const {rightSidebarOpen} = useRightSidebarStore();
     const {workflow} = useWorkflowDataStore();
     const {
-        aiAgentNodeData,
         aiAgentOpen,
         setAiAgentNodeData,
         setAiAgentOpen,

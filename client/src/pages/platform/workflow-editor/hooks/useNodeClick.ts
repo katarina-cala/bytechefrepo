@@ -40,7 +40,7 @@ export default function useNodeClick(data: NodeDataType, id: NodeProps['id'], ac
             return;
         }
 
-        console.log('data in use node click:', data);
+        // console.log('data in use node click:', data);
 
         setRightSidebarOpen(false);
         setActiveTab(activeTab ?? 'description');

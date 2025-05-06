@@ -25,29 +25,28 @@ export function createToolsGhostNode(currentAiAgentNodeName: string | undefined)
 }
 
 export function createClusterElementNode(clusterElementData: ClusterElementItemType) {
-    const {icon, label, name, parameters, type} = clusterElementData;
+    const {label, name, parameters, type} = clusterElementData;
+    const iconUrl = `/icons/${type.split('/')[0]}.svg`;
 
     return {
         data: {
             ...clusterElementData,
             clusterElementName: type.split('/')[2],
             clusterElementType: type.split('/')[2],
-            version: parseInt(type.split('/')[1].replace(/^v/, '')),
             componentName: type.split('/')[0],
-            icon: icon ? (
+            icon: (
                 <InlineSVG
                     className="size-9"
                     loader={<ComponentIcon className="size-9 flex-none text-gray-900" />}
-                    src={icon as string}
+                    src={iconUrl as string}
                 />
-            ) : (
-                <ComponentIcon className="size-9 flex-none text-gray-900" />
             ),
             label,
             name,
             operationName: type.split('/')[0],
             parameters,
             type,
+            version: parseInt(type.split('/')[1].replace(/^v/, '')),
             workflowNodeName: name,
         },
         id: name,
@@ -57,29 +56,28 @@ export function createClusterElementNode(clusterElementData: ClusterElementItemT
 }
 
 export function createToolNode(tool: ClusterElementItemType) {
-    const {icon, label, name, parameters, type} = tool;
+    const {label, name, parameters, type} = tool;
+    const iconUrl = `/icons/${type.split('/')[0]}.svg`;
 
     return {
         data: {
             ...tool,
             clusterElementName: type.split('/')[2],
             clusterElementType: 'tools',
-            version: parseInt(type.split('/')[1].replace(/^v/, '')),
             componentName: type.split('/')[0],
-            icon: icon ? (
+            icon: (
                 <InlineSVG
                     className="size-9"
                     loader={<ComponentIcon className="size-9 flex-none text-gray-900" />}
-                    src={icon as string}
+                    src={iconUrl as string}
                 />
-            ) : (
-                <ComponentIcon className="size-9 flex-none text-gray-900" />
             ),
             label,
             name,
             operationName: type.split('/')[2],
             parameters,
             type,
+            version: parseInt(type.split('/')[1].replace(/^v/, '')),
             workflowNodeName: name,
         },
         id: name,

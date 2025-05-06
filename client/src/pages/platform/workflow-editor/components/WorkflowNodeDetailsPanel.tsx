@@ -58,6 +58,7 @@ import DescriptionTab from './node-details-tabs/DescriptionTab';
 import ConnectionTab from './node-details-tabs/connection-tab/ConnectionTab';
 import OutputTab from './node-details-tabs/output-tab/OutputTab';
 import {useGetClusterElementDefinitionQuery} from '@/shared/queries/platform/clusterElementDefinitions.queries';
+import {ComponentOperationType} from './DataPillPanelBody';
 
 const TABS: Array<{label: string; name: TabNameType}> = [
     {
@@ -95,6 +96,9 @@ const WorkflowNodeDetailsPanel = ({
     const [currentActionDefinition, setCurrentActionDefinition] = useState<ActionDefinition | undefined>();
     const [currentActionFetched, setCurrentActionFetched] = useState(false);
     const [currentClusterElementName, setCurrentClusterElementName] = useState<string | undefined>();
+    const [clusterElementComponentActions, setClusterElementComponentActions] = useState<Array<ComponentOperationType>>(
+        []
+    );
 
     const {
         activeTab,
@@ -106,13 +110,9 @@ const WorkflowNodeDetailsPanel = ({
         workflowNodeDetailsPanelOpen,
     } = useWorkflowNodeDetailsPanelStore();
 
-    // console.log('current component', currentComponent);
-    // console.log('current node', currentNode);
-    // console.log('current operation name', currentOperationName);
-
     const {componentActions, setDataPills, workflow} = useWorkflowDataStore();
 
-    const {setAiAgentOpen} = useWorkflowEditorStore();
+    const {aiAgentNodeData, aiAgentOpen, setAiAgentNodeData, setAiAgentOpen} = useWorkflowEditorStore();
 
     const queryClient = useQueryClient();
 
@@ -125,8 +125,9 @@ const WorkflowNodeDetailsPanel = ({
             componentName: currentNode?.componentName || '',
             componentVersion: currentNode?.version || 1,
         },
-        !!currentNode && !currentNode.taskDispatcher && !isAiAgentClusterElement
+        !!currentNode && !currentNode.taskDispatcher
     );
+    // console.log('current component definition', currentComponentDefinition);
 
     const {data: workflowTestConfigurationConnections} = useGetWorkflowTestConfigurationConnectionsQuery(
         {
@@ -138,6 +139,15 @@ const WorkflowNodeDetailsPanel = ({
 
     const {nodeNames} = workflow;
 
+    const {data: currentClusterElementDefinition} = useGetClusterElementDefinitionQuery(
+        {
+            componentName: currentNode?.componentName,
+            componentVersion: currentNode?.version,
+            clusterElementName: currentNode?.clusterElementName,
+        },
+        isAiAgentClusterElement
+    );
+
     const matchingOperation = useMemo(
         () =>
             [...(currentComponentDefinition?.actions || []), ...(currentComponentDefinition?.triggers || [])].find(
@@ -145,6 +155,11 @@ const WorkflowNodeDetailsPanel = ({
             ),
         [currentComponentDefinition, currentOperationName]
     );
+
+    console.log('matching operation', matchingOperation);
+    // console.log('current operation name', currentOperationName);
+    console.log('current component definition actions', currentComponentDefinition?.actions);
+    console.log('current cluster element definition', currentClusterElementDefinition);
 
     const getTriggerName = useCallback((): string => {
         const currentComponentTriggerNames = currentComponentDefinition?.triggers?.map((trigger) => trigger.name);
@@ -182,14 +197,7 @@ const WorkflowNodeDetailsPanel = ({
 
     const {data: workflowNodeParameterDisplayConditions} = displayConditionsQuery;
 
-    const {data: currentClusterElementDefinition} = useGetClusterElementDefinitionQuery(
-        {
-            componentName: currentNode?.componentName,
-            componentVersion: currentNode?.version,
-            clusterElementName: currentNode?.clusterElementName,
-        },
-        isAiAgentClusterElement
-    );
+    // console.log('current cluster element definition', currentClusterElementDefinition);
 
     const currentNodeDefinition = useMemo(() => {
         if (currentNode?.trigger) {
@@ -212,20 +220,16 @@ const WorkflowNodeDetailsPanel = ({
         currentTaskDispatcherDefinition,
         currentActionDefinition,
     ]);
-    // console.log('current node definition', currentNodeDefinition);
 
     const currentNodeIndex = useMemo(
         () => currentNode && nodeNames?.indexOf(currentNode?.workflowNodeName),
         [currentNode, nodeNames]
     );
 
-    // console.log('currentNodeIndex', currentNodeIndex);
-
     const previousNodeNames = useMemo(
         () => (nodeNames.length > 1 ? nodeNames?.slice(0, currentNodeIndex) : []),
         [nodeNames, currentNodeIndex]
     );
-    // console.log('previous node names', previousNodeNames);
 
     const previousComponentProperties: Array<ComponentPropertiesType> = useMemo(
         () =>
@@ -243,10 +247,8 @@ const WorkflowNodeDetailsPanel = ({
             }),
         [previousComponentDefinitions, workflowNodeOutputs]
     );
-    // console.log('previous component properties', previousComponentProperties);
 
     const hasOutputData = useMemo(() => currentNodeDefinition?.outputDefined, [currentNodeDefinition]);
-    // console.log('has output data', hasOutputData);
 
     const currentWorkflowTrigger = useMemo(
         () => workflow.triggers?.find((trigger) => trigger.name === currentNode?.workflowNodeName),
@@ -257,8 +259,6 @@ const WorkflowNodeDetailsPanel = ({
         () => workflow.tasks?.find((task) => task.name === currentNode?.workflowNodeName),
         [workflow.tasks, currentNode]
     );
-    // console.log('current workflow task', currentWorkflowTask);
-    // console.log('workflow tasks', workflow);
 
     const currentWorkflowNodeConnections: ComponentConnection[] = useMemo(
         () => currentWorkflowTask?.connections || currentWorkflowTrigger?.connections || [],
@@ -309,6 +309,9 @@ const WorkflowNodeDetailsPanel = ({
         () => currentComponent?.operationName && (!matchingOperation?.name || !currentOperationFetched),
         [currentComponent, matchingOperation, currentOperationFetched]
     );
+    // console.log('operation data missing', operationDataMissing);
+    // console.log('matching operation', !matchingOperation?.name);
+    // console.log('current operation fetched', !currentOperationFetched);
 
     const tabDataExists = useMemo(
         () =>
@@ -469,9 +472,6 @@ const WorkflowNodeDetailsPanel = ({
         ]
     );
 
-    // console.log('current component', currentComponent);
-    // console.log('current node in node details panel', currentNode);
-
     const handlePanelClose = useCallback(() => {
         setAiAgentOpen(false);
         useWorkflowNodeDetailsPanelStore.getState().reset();
@@ -623,14 +623,18 @@ const WorkflowNodeDetailsPanel = ({
         // console.log('currentNode.operationName', currentNode.operationName);
         // console.log('currentOperationName', currentOperationName);
 
-        if (currentNode.operationName && currentOperationName && !isAiAgentClusterElement) {
+        if (currentNode.operationName && currentOperationName) {
             updatedNode = {
                 ...updatedNode,
-                operationName: currentOperationName,
+                // operationName: currentOperationName,
                 triggerType: currentTriggerDefinition?.type,
                 type: `${currentComponent?.componentName}/v${currentComponentDefinition?.version}/${currentOperationName}`,
             };
         }
+
+        console.log('current component COMPONENT NAME', currentComponent?.componentName);
+        console.log('currentComponentDefintion VERSION', currentComponentDefinition?.version);
+        console.log('current OPERATION NAME', currentOperationName);
 
         if (currentWorkflowNodeConnections.length) {
             updatedNode = {
@@ -641,6 +645,9 @@ const WorkflowNodeDetailsPanel = ({
                 connections: currentWorkflowNodeConnections,
             };
         }
+
+        console.log('updated Node', updatedNode);
+        console.log('current Node', currentNode);
 
         if (!isEqual(updatedNode, currentNode)) {
             setCurrentNode(updatedNode);
@@ -656,23 +663,73 @@ const WorkflowNodeDetailsPanel = ({
         currentTriggerDefinition,
     ]);
 
-    // Set currentOperationName depending on the currentComponentAction.operationName
-    //TODO: currentComponentAction is not defined for the clusterElement when clicked
-    // console.log('component actions', componentActions);
     useEffect(() => {
-        if (!componentActions?.length) {
-            return;
-        }
+        if (aiAgentOpen) {
+            const currentAiAgentTask = workflow?.tasks?.find((task) => task.name === aiAgentNodeData?.workflowNodeName);
+            const currentAiAgentTaskClusterElements = currentAiAgentTask?.clusterElements;
 
-        const currentComponentAction = componentActions.find(
-            (action) => action.workflowNodeName === currentNode?.workflowNodeName
-        );
+            if (currentAiAgentTaskClusterElements) {
+                let clusterElementsActionsData = [];
+
+                Object.entries(currentAiAgentTaskClusterElements).forEach(([key, value]) => {
+                    console.log('value', value);
+                    if (key === 'tools' && Array.isArray(value)) {
+                        const toolsData = value.map((tool) => ({
+                            componentName: tool.componentName || '',
+                            operationName: tool.type ? tool.type.split('/')[2] : '',
+                            workflowNodeName: tool.name || '',
+                        }));
+
+                        clusterElementsActionsData = [...clusterElementsActionsData, ...toolsData];
+                    } else {
+                        clusterElementsActionsData.push({
+                            componentName: value.componentName || '',
+                            operationName: value.type ? value.type.split('/')[2] : '',
+                            workflowNodeName: value.name || '',
+                        });
+                    }
+                });
+
+                if (clusterElementsActionsData.length > 0) {
+                    setClusterElementComponentActions(clusterElementsActionsData);
+                }
+            }
+        }
+    }, [aiAgentOpen, aiAgentNodeData, workflow, currentComponentDefinition]);
+    console.log('current operation name', currentOperationName);
+    // console.log('component actions', componentActions);
+    // console.log('clusterElementComponentActions', clusterElementComponentActions);
+
+    // Set currentOperationName depending on the currentComponentAction.operationName
+
+    //TODO: currentComponentAction is not defined for the clusterElement when clicked
+    useEffect(() => {
+        let currentComponentAction;
+
+        if (componentActions.length && !aiAgentOpen) {
+            currentComponentAction = componentActions.find(
+                (action) => action.workflowNodeName === currentNode?.workflowNodeName
+            );
+        } else if (aiAgentOpen) {
+            if (currentNode?.workflowNodeName.includes('aiAgent')) {
+                currentComponentAction = componentActions.find(
+                    (action) => action.workflowNodeName === currentNode?.workflowNodeName
+                );
+            } else if (clusterElementComponentActions) {
+                currentComponentAction = clusterElementComponentActions.find(
+                    (action) => action.workflowNodeName === currentNode?.workflowNodeName
+                );
+            }
+        }
 
         if (currentComponentAction?.operationName) {
             setCurrentOperationName(currentComponentAction.operationName);
         }
+
+        console.log('ai agent node DATA', aiAgentNodeData);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [componentActions, currentNode?.workflowNodeName]);
+    }, [clusterElementComponentActions, componentActions, currentNode?.workflowNodeName]);
+    // console.log('current operation name', currentOperationName);
 
     // Update display conditions when currentNode changes
     useEffect(() => {
@@ -729,9 +786,6 @@ const WorkflowNodeDetailsPanel = ({
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentComponentDefinition, currentNodeName, currentOperationName, matchingOperation, queryClient]);
-
-    // console.log('current node', currentNode);
-    // console.log('current workflow node', currentWorkflowNode);
 
     if (!workflowNodeDetailsPanelOpen) {
         return <></>;

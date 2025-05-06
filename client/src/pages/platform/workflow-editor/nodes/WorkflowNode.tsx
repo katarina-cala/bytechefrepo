@@ -53,7 +53,7 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
     const {data: clusterElementDefinitionData} = useGetClusterElementDefinitionQuery(
         {
             componentName: data.componentName,
-            componentVersion: data.componentVersion,
+            componentVersion: data.version,
             clusterElementName: data.clusterElementName,
         },
         hoveredNodeName !== undefined
