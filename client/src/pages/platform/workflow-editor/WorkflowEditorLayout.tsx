@@ -20,10 +20,11 @@ import {useWorkflowMutation} from '@/pages/platform/workflow-editor/providers/wo
 import useRightSidebarStore from '@/pages/platform/workflow-editor/stores/useRightSidebarStore';
 import useWorkflowEditorStore from '@/pages/platform/workflow-editor/stores/useWorkflowEditorStore';
 import {useCopilotStore} from '@/shared/components/copilot/stores/useCopilotStore';
+import {ROOT_CLUSTER_ELEMENT_NAMES} from '@/shared/constants';
 import {useEffect} from 'react';
 import {twMerge} from 'tailwind-merge';
 
-import AiAgentWorkflowEditor from '../ai-agent-editor/components/AiAgentWorkflowEditor';
+import ClusterElementsWorkflowEditor from '../ai-agent-editor/components/ClusterElementsWorkflowEditor';
 import DataPillPanel from './components/DataPillPanel';
 import WorkflowEditor from './components/WorkflowEditor';
 import useWorkflowDataStore from './stores/useWorkflowDataStore';
@@ -35,9 +36,10 @@ const WorkflowEditorLayout = () => {
     const {rightSidebarOpen} = useRightSidebarStore();
     const {workflow} = useWorkflowDataStore();
     const {
-        aiAgentOpen,
-        setAiAgentNodeData,
-        setAiAgentOpen,
+        clusterElementsCanvasOpen,
+        rootClusterElementNodeData,
+        setClusterElementsCanvasOpen,
+        setRootClusterElementNodeData,
         setShowWorkflowCodeEditorSheet,
         setShowWorkflowInputsSheet,
         setShowWorkflowOutputsSheet,
@@ -69,11 +71,13 @@ const WorkflowEditorLayout = () => {
 
     const {updateWorkflowMutation} = useWorkflowMutation();
 
+    const isRootClusterElement = ROOT_CLUSTER_ELEMENT_NAMES.includes(currentComponent?.componentName as string);
+
     useEffect(() => {
-        if (currentNode?.componentName === 'aiAgent') {
-            setAiAgentNodeData(currentNode);
+        if (currentNode?.rootClusterElement) {
+            setRootClusterElementNodeData(currentNode);
         }
-    }, [currentNode, setAiAgentNodeData]);
+    }, [rootClusterElementNodeData, currentNode, setRootClusterElementNodeData]);
 
     return (
         <ReactFlowProvider>
@@ -111,7 +115,7 @@ const WorkflowEditorLayout = () => {
                 </div>
             </PageLoader>
 
-            {currentComponent && currentComponent.componentName !== 'aiAgent' && (
+            {currentComponent && !isRootClusterElement && (
                 <WorkflowNodeDetailsPanel
                     previousComponentDefinitions={previousComponentDefinitions}
                     updateWorkflowMutation={updateWorkflowMutation}
@@ -121,14 +125,14 @@ const WorkflowEditorLayout = () => {
 
             <Dialog
                 onOpenChange={(open) => {
-                    setAiAgentOpen(open);
+                    setClusterElementsCanvasOpen(open);
 
                     if (!open) {
-                        setAiAgentNodeData(undefined);
+                        setRootClusterElementNodeData(undefined);
                         useWorkflowNodeDetailsPanelStore.getState().reset();
                     }
                 }}
-                open={aiAgentOpen}
+                open={clusterElementsCanvasOpen}
             >
                 <DialogHeader>
                     <DialogTitle className="sr-only"></DialogTitle>
@@ -137,7 +141,7 @@ const WorkflowEditorLayout = () => {
                 </DialogHeader>
 
                 <DialogContent className="absolute bottom-4 left-16 top-12 h-[calc(100vh-64px)] w-[calc(100vw-80px)] max-w-none translate-x-0 translate-y-0 gap-2 bg-surface-main p-0">
-                    <AiAgentWorkflowEditor />
+                    <ClusterElementsWorkflowEditor />
 
                     <WorkflowNodeDetailsPanel
                         className="fixed inset-y-0 right-0 rounded-l-none border-none"
@@ -145,16 +149,25 @@ const WorkflowEditorLayout = () => {
                         updateWorkflowMutation={updateWorkflowMutation}
                         workflowNodeOutputs={filteredWorkflowNodeOutputs ?? []}
                     />
+
+                    <DataPillPanel
+                        className="fixed inset-y-0 right-[465px] rounded-none"
+                        isLoading={isWorkflowNodeOutputsPending}
+                        previousComponentDefinitions={previousComponentDefinitions}
+                        workflowNodeOutputs={filteredWorkflowNodeOutputs ?? []}
+                    />
                 </DialogContent>
             </Dialog>
 
             {workflow.id && <WorkflowTestChatPanel />}
 
-            <DataPillPanel
-                isLoading={isWorkflowNodeOutputsPending}
-                previousComponentDefinitions={previousComponentDefinitions}
-                workflowNodeOutputs={filteredWorkflowNodeOutputs ?? []}
-            />
+            {currentComponent && !isRootClusterElement && (
+                <DataPillPanel
+                    isLoading={isWorkflowNodeOutputsPending}
+                    previousComponentDefinitions={previousComponentDefinitions}
+                    workflowNodeOutputs={filteredWorkflowNodeOutputs ?? []}
+                />
+            )}
 
             <WorkflowInputsSheet
                 onSheetOpenChange={setShowWorkflowInputsSheet}

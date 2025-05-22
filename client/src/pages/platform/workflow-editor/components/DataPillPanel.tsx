@@ -6,15 +6,18 @@ import useWorkflowDataStore from '@/pages/platform/workflow-editor/stores/useWor
 import {ComponentDefinitionBasic, WorkflowNodeOutput} from '@/shared/middleware/platform/configuration';
 import {Cross2Icon, InfoCircledIcon} from '@radix-ui/react-icons';
 import {useEffect, useState} from 'react';
+import {twMerge} from 'tailwind-merge';
 
 import useDataPillPanelStore from '../stores/useDataPillPanelStore';
 import useWorkflowNodeDetailsPanelStore from '../stores/useWorkflowNodeDetailsPanelStore';
 
 const DataPillPanel = ({
+    className,
     isLoading,
     previousComponentDefinitions,
     workflowNodeOutputs,
 }: {
+    className?: string;
     isLoading: boolean;
     previousComponentDefinitions: Array<ComponentDefinitionBasic>;
     workflowNodeOutputs: Array<WorkflowNodeOutput>;
@@ -74,7 +77,12 @@ const DataPillPanel = ({
         (componentOperations && componentOperations.length > 0) || (workflow.inputs && workflow.inputs.length > 0);
 
     return (
-        <div className="absolute bottom-6 right-data-pill-panel-placement top-2 z-10 w-screen max-w-data-pill-panel-width overflow-hidden rounded-md border border-stroke-neutral-secondary bg-background">
+        <div
+            className={twMerge(
+                'absolute bottom-6 right-data-pill-panel-placement top-2 z-10 w-screen max-w-data-pill-panel-width overflow-hidden rounded-md border border-stroke-neutral-secondary bg-background',
+                className
+            )}
+        >
             <div className="flex h-full flex-col divide-y divide-gray-100 bg-white">
                 <header className="flex content-center items-center p-4 text-lg font-medium">
                     <span>Data Pill Panel</span>
