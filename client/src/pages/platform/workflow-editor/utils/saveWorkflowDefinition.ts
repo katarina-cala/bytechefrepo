@@ -1,3 +1,4 @@
+import {ROOT_CLUSTER_ELEMENT_NAMES} from '@/shared/constants';
 import {
     ComponentDefinitionApi,
     Workflow,
@@ -180,15 +181,15 @@ export default async function saveWorkflowDefinition({
                 combinedParameters = newTask.parameters ?? {};
             }
 
-            if (existingWorkflowTask.type.split('/')[0] === 'aiAgent') {
-                const aiAgentTask: WorkflowTask = {
+            if (ROOT_CLUSTER_ELEMENT_NAMES.includes(existingWorkflowTask.type.split('/')[0])) {
+                const rootClusterElementTask: WorkflowTask = {
                     ...newTask,
                     clusterElements: {
                         ...(newTask.clusterElements || {}),
                     },
                 };
 
-                updatedWorkflowDefinitionTasks[existingTaskIndex] = aiAgentTask;
+                updatedWorkflowDefinitionTasks[existingTaskIndex] = rootClusterElementTask;
             } else {
                 const combinedTask: WorkflowTask = {
                     ...newTask,

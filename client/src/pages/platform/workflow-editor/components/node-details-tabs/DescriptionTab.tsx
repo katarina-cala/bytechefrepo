@@ -4,6 +4,7 @@ import {Textarea} from '@/components/ui/textarea';
 import useWorkflowDataStore from '@/pages/platform/workflow-editor/stores/useWorkflowDataStore';
 import useWorkflowNodeDetailsPanelStore from '@/pages/platform/workflow-editor/stores/useWorkflowNodeDetailsPanelStore';
 import {
+    ClusterElementDefinition,
     ComponentDefinition,
     TaskDispatcherDefinition,
     TriggerDefinition,
@@ -15,6 +16,7 @@ import {useParams} from 'react-router-dom';
 import {useDebouncedCallback} from 'use-debounce';
 import {useShallow} from 'zustand/react/shallow';
 
+import saveClusterElementFieldChange from '../../utils/saveClusterElementFieldChange';
 import saveTaskDispatcherSubtaskFieldChange from '../../utils/saveTaskDispatcherSubtaskFieldChange';
 import saveWorkflowDefinition from '../../utils/saveWorkflowDefinition';
 
@@ -22,7 +24,7 @@ const DescriptionTab = ({
     nodeDefinition,
     updateWorkflowMutation,
 }: {
-    nodeDefinition: ComponentDefinition | TaskDispatcherDefinition | TriggerDefinition;
+    nodeDefinition: ComponentDefinition | ClusterElementDefinition | TaskDispatcherDefinition | TriggerDefinition;
     updateWorkflowMutation: UpdateWorkflowMutationType;
 }) => {
     const {nodes} = useWorkflowDataStore(
@@ -46,6 +48,22 @@ const DescriptionTab = ({
             saveTaskDispatcherSubtaskFieldChange({
                 currentComponentDefinition: nodeDefinition as ComponentDefinition,
                 currentNodeIndex: nodes.findIndex((node) => node.data.name === currentNode.workflowNodeName),
+                fieldUpdate: {
+                    field: 'label',
+                    value: event.target.value,
+                },
+                projectId: +projectId!,
+                queryClient,
+                updateWorkflowMutation,
+            });
+
+            return;
+        }
+
+        if (currentNode.clusterElementType) {
+            saveClusterElementFieldChange({
+                currentClusterElementName: currentNode.name,
+                currentComponentDefinition: nodeDefinition as ComponentDefinition,
                 fieldUpdate: {
                     field: 'label',
                     value: event.target.value,
@@ -94,6 +112,22 @@ const DescriptionTab = ({
             saveTaskDispatcherSubtaskFieldChange({
                 currentComponentDefinition: nodeDefinition as ComponentDefinition,
                 currentNodeIndex: nodes.findIndex((node) => node.data.name === currentNode.workflowNodeName),
+                fieldUpdate: {
+                    field: 'description',
+                    value: event.target.value,
+                },
+                projectId: +projectId!,
+                queryClient,
+                updateWorkflowMutation,
+            });
+
+            return;
+        }
+
+        if (currentNode.clusterElementType) {
+            saveClusterElementFieldChange({
+                currentClusterElementName: currentNode.name,
+                currentComponentDefinition: nodeDefinition as ComponentDefinition,
                 fieldUpdate: {
                     field: 'description',
                     value: event.target.value,
