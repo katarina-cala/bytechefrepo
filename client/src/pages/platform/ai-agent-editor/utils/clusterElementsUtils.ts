@@ -7,46 +7,45 @@ export function initializeClusterElementsObject(
 ) {
     const clusterElements: ClusterElementsType = {};
 
-    if (rootClusterElementDefinition?.clusterElementTypes) {
-        rootClusterElementDefinition.clusterElementTypes.forEach((elementType) => {
-            const objectKey = convertNameToCamelCase(elementType.name!);
-
-            if (
-                (clusterElementsData && clusterElementsData[objectKey] !== undefined) ||
-                (clusterElementsData && clusterElementsData[objectKey] !== null)
-            ) {
-                if (elementType.multipleElements) {
-                    if (Array.isArray(clusterElementsData[objectKey])) {
-                        clusterElements[objectKey] = (clusterElementsData[objectKey] as ClusterElementItemType[]).map(
-                            (element) => ({
-                                label: element.label,
-                                name: element.name,
-                                parameters: element.parameters || {},
-                                type: element.type,
-                            })
-                        );
-                    } else {
-                        clusterElements[objectKey] = [];
-                    }
-                } else {
-                    const element = clusterElementsData[objectKey];
-
-                    if (element && !Array.isArray(element)) {
-                        clusterElements[objectKey] = {
-                            label: element.label,
-                            name: element.name,
-                            parameters: element.parameters || {},
-                            type: element.type,
-                        };
-                    } else {
-                        clusterElements[objectKey] = null;
-                    }
-                }
-            } else {
-                clusterElements[objectKey] = elementType.multipleElements ? [] : null;
-            }
-        });
+    if (!rootClusterElementDefinition.clusterElementTypes) {
+        return clusterElements;
     }
+
+    rootClusterElementDefinition.clusterElementTypes.forEach((elementType) => {
+        const clusterElementType = convertNameToCamelCase(elementType.name || '');
+
+        const hasElementData = clusterElementsData?.[clusterElementType] != null;
+
+        if (hasElementData) {
+            if (elementType.multipleElements) {
+                if (!Array.isArray(clusterElementsData[clusterElementType])) {
+                    clusterElements[clusterElementType] = [];
+                }
+
+                clusterElements[clusterElementType] = (
+                    clusterElementsData[clusterElementType] as ClusterElementItemType[]
+                ).map((element) => ({
+                    label: element.label,
+                    name: element.name,
+                    parameters: element.parameters || {},
+                    type: element.type,
+                }));
+            } else {
+                const element = clusterElementsData[clusterElementType];
+
+                if (element && !Array.isArray(element)) {
+                    clusterElements[clusterElementType] = {
+                        label: element.label,
+                        name: element.name,
+                        parameters: element.parameters || {},
+                        type: element.type,
+                    };
+                }
+            }
+        } else {
+            clusterElements[clusterElementType] = elementType.multipleElements ? [] : null;
+        }
+    });
 
     return clusterElements;
 }
@@ -56,8 +55,10 @@ export function convertNameToCamelCase(typeName: string): string {
 
     if (typeName.includes('_')) {
         const [firstWord, ...remainingWords] = typeName.toLowerCase().split('_');
-        convertedTypeName =
-            firstWord + remainingWords.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join('');
+
+        const capitalizedWords = remainingWords.map((word) => word.charAt(0).toUpperCase() + word.slice(1));
+
+        convertedTypeName = `${firstWord}${capitalizedWords.join('')}`;
     }
 
     return convertedTypeName;

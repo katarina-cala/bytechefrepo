@@ -56,30 +56,29 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
 
     const {data: clusterElementDefinitionData} = useGetClusterElementDefinitionQuery(
         {
+            clusterElementName: data.clusterElementName as string,
             componentName: data.componentName,
             componentVersion: data.version as number,
-            // eslint-disable-next-line sort-keys
-            clusterElementName: data.clusterElementName as string,
         },
         hoveredNodeName !== undefined && !!data.clusterElementType
     );
 
-    const componentVersion = rootClusterElementNodeData?.type
+    const rootClusterElementComponentVersion = rootClusterElementNodeData?.type
         ? parseInt(rootClusterElementNodeData.type.split('/')[1].replace(/^v/, ''))
         : 1;
 
+    const rootClusterElementComponentName = rootClusterElementNodeData?.componentName || '';
+
     const {data: rootClusterElementDefinition} = useGetComponentDefinitionQuery(
         {
-            componentName: rootClusterElementNodeData?.componentName || '',
-            componentVersion: componentVersion || 1,
+            componentName: rootClusterElementComponentName,
+            componentVersion: rootClusterElementComponentVersion,
         },
         !!isRootClusterElement && clusterElementsCanvasOpen
     );
 
-    const handleCount = rootClusterElementDefinition?.clusterElementTypes?.length;
-
-    const getHandlePosition = (index: number, handleCount: number = 1): string => {
-        const handleCountRange = Math.max(1, handleCount);
+    const getHandlePosition = (index: number, totalHandles: number = 1): string => {
+        const handleCountRange = Math.max(1, totalHandles);
 
         const sectionCount = handleCountRange + 1;
 
@@ -113,10 +112,6 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
             });
         }
     };
-
-    const rootClusterElementComponentVersion = rootClusterElementNodeData?.type
-        ? parseInt(rootClusterElementNodeData?.type?.split('/')[1].replace(/^v/, ''))
-        : 1;
 
     const handlePopoverMenuClusterElementClick = (type: string) => {
         const rootComponentClusterElementDefinitionRequest: GetRootComponentClusterElementDefinitionsRequest = {
@@ -309,7 +304,12 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                             isConnectable={false}
                             key={`${convertNameToCamelCase(clusterElementType.name as string)}-handle`}
                             position={Position.Bottom}
-                            style={{left: getHandlePosition(index, handleCount)}}
+                            style={{
+                                left: getHandlePosition(
+                                    index,
+                                    rootClusterElementDefinition.clusterElementTypes?.length
+                                ),
+                            }}
                             type="source"
                         />
                     ))}

@@ -30,13 +30,13 @@ export default function useNodeClick(data: NodeDataType, id: NodeProps['id'], ac
 
     return useCallback(() => {
         const clickedNode = nodes.find((node) => node.id === id);
-        const clickedNodeInClusterElementCanvas = clusterElementsCanvasNodes.find((node) => node.id === id);
+        const clickedClusterNode = clusterElementsCanvasNodes.find((node) => node.id === id);
 
         if (!clusterElementsCanvasOpen && !clickedNode) {
             return;
         }
 
-        if (clusterElementsCanvasOpen && !clickedNodeInClusterElementCanvas) {
+        if (clusterElementsCanvasOpen && !clickedClusterNode) {
             return;
         }
 
