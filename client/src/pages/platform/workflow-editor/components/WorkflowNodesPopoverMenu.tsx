@@ -153,6 +153,7 @@ const WorkflowNodesPopoverMenu = ({
                             getClusterElementDefinitionRequest
                         ),
                     });
+
                     const clusterData = {
                         ...clickedItem,
                         componentName: clickedItem.componentName,
