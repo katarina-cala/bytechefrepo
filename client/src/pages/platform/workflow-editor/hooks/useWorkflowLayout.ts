@@ -15,8 +15,12 @@ export const useWorkflowLayout = () => {
     const {copilotPanelOpen, setContext, setCopilotPanelOpen} = useCopilotStore();
     const {rightSidebarOpen, setRightSidebarOpen} = useRightSidebarStore();
     const {componentActions, setComponentDefinitions, setTaskDispatcherDefinitions, workflow} = useWorkflowDataStore();
-    const {setShowWorkflowCodeEditorSheet, setShowWorkflowInputsSheet, setShowWorkflowOutputsSheet} =
-        useWorkflowEditorStore();
+    const {
+        clusterElementsCanvasOpen,
+        setShowWorkflowCodeEditorSheet,
+        setShowWorkflowInputsSheet,
+        setShowWorkflowOutputsSheet,
+    } = useWorkflowEditorStore();
     const {currentNode, setWorkflowNodeDetailsPanelOpen} = useWorkflowNodeDetailsPanelStore();
     const {setWorkflowTestChatPanelOpen} = useWorkflowTestChatStore();
 
@@ -73,14 +77,20 @@ export const useWorkflowLayout = () => {
         return noInputs && noConnections;
     }, [workflow]);
 
+    let componentDefinitionsQueryParameters: object = {
+        actionDefinitions: true,
+        triggerDefinitions: true,
+    };
+
+    if (clusterElementsCanvasOpen) {
+        componentDefinitionsQueryParameters = {};
+    }
+
     const {
         data: componentDefinitions,
         error: componentsError,
         isLoading: componentsIsLoading,
-    } = useGetComponentDefinitionsQuery({
-        actionDefinitions: true,
-        triggerDefinitions: true,
-    });
+    } = useGetComponentDefinitionsQuery(componentDefinitionsQueryParameters);
 
     const {
         data: taskDispatcherDefinitions,

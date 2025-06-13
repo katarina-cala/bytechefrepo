@@ -2,15 +2,7 @@ import {Button} from '@/components/ui/button';
 import {HoverCardContent, HoverCardTrigger} from '@/components/ui/hover-card';
 import WorkflowNodesPopoverMenu from '@/pages/platform/workflow-editor/components/WorkflowNodesPopoverMenu';
 import {useWorkflowMutation} from '@/pages/platform/workflow-editor/providers/workflowMutationProvider';
-import {
-    ClusterElementDefinitionApi,
-    ClusterElementDefinitionBasic,
-    GetRootComponentClusterElementDefinitionsRequest,
-} from '@/shared/middleware/platform/configuration';
-import {
-    ClusterElementDefinitionKeys,
-    useGetClusterElementDefinitionQuery,
-} from '@/shared/queries/platform/clusterElementDefinitions.queries';
+import {useGetClusterElementDefinitionQuery} from '@/shared/queries/platform/clusterElementDefinitions.queries';
 import {useGetComponentDefinitionQuery} from '@/shared/queries/platform/componentDefinitions.queries';
 import {useGetWorkflowNodeDescriptionQuery} from '@/shared/queries/platform/workflowNodeDescriptions.queries';
 import {NodeDataType} from '@/shared/types';
@@ -22,25 +14,39 @@ import {memo, useState} from 'react';
 import sanitize from 'sanitize-html';
 import {twMerge} from 'tailwind-merge';
 
-import {convertNameToCamelCase, convertNameToSnakeCase} from '../../cluster-element-editor/utils/clusterElementsUtils';
+import {convertNameToCamelCase} from '../../cluster-element-editor/utils/clusterElementsUtils';
 import useNodeClickHandler from '../hooks/useNodeClick';
 import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 import useWorkflowEditorStore from '../stores/useWorkflowEditorStore';
 import useWorkflowNodeDetailsPanelStore from '../stores/useWorkflowNodeDetailsPanelStore';
 import handleDeleteTask from '../utils/handleDeleteTask';
+import saveClusterElementNodesPosition from '../utils/saveClusterElementNodesPosition';
 import styles from './NodeTypes.module.css';
 
 const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
     const [isHovered, setIsHovered] = useState(false);
     const [hoveredNodeName, setHoveredNodeName] = useState<string | undefined>();
-    const [clusterElementDefinition, setClusterElementDefinition] = useState<ClusterElementDefinitionBasic[]>([]);
 
     const {currentNode, setCurrentNode, workflowNodeDetailsPanelOpen} = useWorkflowNodeDetailsPanelStore();
     const {parentId, parentType, workflow} = useWorkflowDataStore();
     const {clusterElementsCanvasOpen, rootClusterElementNodeData, setRootClusterElementNodeData} =
         useWorkflowEditorStore();
 
-    const handleNodeClick = useNodeClickHandler(data, id);
+    const nodeClickHandler = useNodeClickHandler(data, id);
+
+    const handleNodeClick = () => {
+        if (clusterElementsCanvasOpen && parentId && parentType) {
+            saveClusterElementNodesPosition({
+                parentId,
+                parentType,
+                queryClient,
+                updateWorkflowMutation,
+                workflow,
+            });
+        }
+
+        nodeClickHandler();
+    };
 
     const isSelected = currentNode?.name === data.name;
 
@@ -77,8 +83,7 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
     );
 
     const getHandlePosition = (index: number, totalHandles: number = 1): string => {
-        const nodeWidth = 384;
-
+        const nodeWidth = 252;
         const nodeEdgeBuffer = nodeWidth * 0.1;
 
         const usableNodeWidth = nodeWidth - nodeEdgeBuffer * 2;
@@ -118,30 +123,6 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
         }
     };
 
-    const handlePopoverMenuClusterElementClick = (type: string) => {
-        const rootComponentClusterElementDefinitionRequest: GetRootComponentClusterElementDefinitionsRequest = {
-            clusterElementType: type,
-            rootComponentName: rootClusterElementNodeData?.componentName || '',
-            rootComponentVersion: rootClusterElementComponentVersion || 1,
-        };
-
-        const fetchRootComponentClusterElementDefinition = async () => {
-            const rootComponentClusterElementDefinition = await queryClient.fetchQuery({
-                queryFn: () =>
-                    new ClusterElementDefinitionApi().getRootComponentClusterElementDefinitions(
-                        rootComponentClusterElementDefinitionRequest
-                    ),
-                queryKey: ClusterElementDefinitionKeys.filteredClusterElementDefinitions(
-                    rootComponentClusterElementDefinitionRequest
-                ),
-            });
-
-            setClusterElementDefinition(rootComponentClusterElementDefinition);
-        };
-
-        fetchRootComponentClusterElementDefinition();
-    };
-
     const nodeDescription =
         workflowNodeDescription?.description && !data.clusterElementType
             ? workflowNodeDescription.description
@@ -152,7 +133,8 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
             className={twMerge(
                 'relative flex min-w-60 cursor-pointer justify-center',
                 !data.taskDispatcher && 'items-center',
-                !isClusterElement && !isRootClusterElement && 'nodrag'
+                !isClusterElement && !isRootClusterElement && 'nodrag',
+                isClusterElement && 'flex-col items-start gap-1'
             )}
             data-nodetype={data.trigger ? 'trigger' : 'task'}
             key={id}
@@ -198,18 +180,10 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                             hideClusterElementComponents={!data.clusterElementType}
                             hideTaskDispatchers={!!data.clusterElementType}
                             hideTriggerComponents
-                            sourceData={clusterElementDefinition}
                             sourceNodeId={currentNode.name}
                         >
                             <Button
                                 className="bg-white p-2 shadow-md hover:text-blue-500 hover:shadow-sm"
-                                onClick={() => {
-                                    if (data.clusterElementType) {
-                                        handlePopoverMenuClusterElementClick(
-                                            convertNameToSnakeCase(data.clusterElementType)
-                                        );
-                                    }
-                                }}
                                 title={`Change ${data.clusterElementType} component`}
                                 variant="outline"
                             >
@@ -247,11 +221,25 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                                 workflowNodeDetailsPanelOpen &&
                                 !isRootClusterElement &&
                                 'border-blue-300 bg-blue-100 shadow-none',
-                            isRootClusterElement && 'min-w-96'
+                            isRootClusterElement && `min-w-[252px]`
                         )}
                         onClick={handleNodeClick}
                     >
-                        {data.icon ? data.icon : <ComponentIcon className="size-9 text-black" />}
+                        <div className={twMerge(isRootClusterElement && 'flex items-center gap-4')}>
+                            {data.icon ? data.icon : <ComponentIcon className="size-9 text-black" />}
+
+                            {isRootClusterElement && (
+                                <div className="flex w-full min-w-max flex-col items-start">
+                                    <span className="font-semibold text-black">{data.title || data.label}</span>
+
+                                    {data.operationName && (
+                                        <pre className="text-sm text-black">{data.operationName}</pre>
+                                    )}
+
+                                    <span className="text-sm text-gray-500">{data.workflowNodeName}</span>
+                                </div>
+                            )}
+                        </div>
                     </Button>
                 </HoverCardTrigger>
 
@@ -278,13 +266,15 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                 )}
             </HoverCard>
 
-            <div className="ml-2 flex w-full min-w-max flex-col items-start">
-                <span className="font-semibold">{data.title || data.label}</span>
+            {!isRootClusterElement && (
+                <div className={twMerge('ml-2 flex w-full min-w-max flex-col items-start', isClusterElement && 'ml-0')}>
+                    <span className="font-semibold">{data.title || data.label}</span>
 
-                {data.operationName && <pre className="text-sm">{data.operationName}</pre>}
+                    {data.operationName && <pre className="text-sm">{data.operationName}</pre>}
 
-                <span className="text-sm text-gray-500">{data.workflowNodeName}</span>
-            </div>
+                    <span className="text-sm text-gray-500">{data.workflowNodeName}</span>
+                </div>
+            )}
 
             {!isRootClusterElement ? (
                 <>

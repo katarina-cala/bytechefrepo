@@ -40,6 +40,9 @@ export default function saveClusterElementNodesPosition({
         return;
     }
 
+    const clusterElements: Record<string, ClusterElementItemType | ClusterElementItemType[]> =
+        currentClusterRootTask.clusterElements;
+
     const nodePositions = clusterElementNodes.reduce<Record<string, {x: number; y: number}>>((accumulator, node) => {
         accumulator[node.id] = {
             x: node.position.x,
@@ -59,9 +62,6 @@ export default function saveClusterElementNodesPosition({
         },
         {}
     );
-
-    const clusterElements: Record<string, ClusterElementItemType | ClusterElementItemType[]> =
-        currentClusterRootTask.clusterElements;
 
     Object.entries(clusterElements).forEach(([elementKey, elementValue]) => {
         if (Array.isArray(elementValue)) {
@@ -113,13 +113,15 @@ export default function saveClusterElementNodesPosition({
         }
     });
 
-    const rootNodePosition = nodePositions[rootClusterElementNodeData.workflowNodeName];
+    const rootNodePosition = rootClusterElementNodeData?.workflowNodeName
+        ? nodePositions[rootClusterElementNodeData.workflowNodeName]
+        : undefined;
 
     const metadata = {
         ...(currentClusterRootTask.metadata || {}),
         ui: {
             ...(currentClusterRootTask.metadata?.ui || {}),
-            nodePosition: rootNodePosition || {x: 0, y: 0},
+            nodePosition: rootNodePosition,
             placeholderPositions: placeholderPositions || {},
         },
     };
@@ -132,13 +134,13 @@ export default function saveClusterElementNodesPosition({
 
     setRootClusterElementNodeData({
         ...rootClusterElementNodeData,
-        clusterElements: clusterElements,
+        clusterElements,
     } as typeof rootClusterElementNodeData);
 
     if (currentNode?.rootClusterElement) {
         setCurrentNode({
             ...currentNode,
-            clusterElements: clusterElements,
+            clusterElements,
         });
     }
 

@@ -159,21 +159,24 @@ const WorkflowEditorLayout = ({parentId, parentType}: {parentId: number; parentT
                 <DialogContent className="absolute bottom-4 left-16 top-12 h-[calc(100vh-64px)] w-[calc(100vw-80px)] max-w-none translate-x-0 translate-y-0 gap-2 bg-surface-main p-0">
                     <ClusterElementsWorkflowEditor />
 
-                    <WorkflowNodeDetailsPanel
-                        className="fixed inset-y-0 right-0 rounded-l-none border-none"
-                        parentId={parentId}
-                        parentType={parentType}
-                        previousComponentDefinitions={previousComponentDefinitions}
-                        updateWorkflowMutation={updateWorkflowMutation}
-                        workflowNodeOutputs={filteredWorkflowNodeOutputs ?? []}
-                    />
-
-                    <DataPillPanel
-                        className="fixed inset-y-0 right-[465px] rounded-none"
-                        isLoading={isWorkflowNodeOutputsPending}
-                        previousComponentDefinitions={previousComponentDefinitions}
-                        workflowNodeOutputs={filteredWorkflowNodeOutputs ?? []}
-                    />
+                    {currentComponent && (
+                        <>
+                            <WorkflowNodeDetailsPanel
+                                className="fixed inset-y-0 right-0 rounded-l-none border-none"
+                                parentId={parentId}
+                                parentType={parentType}
+                                previousComponentDefinitions={previousComponentDefinitions}
+                                updateWorkflowMutation={updateWorkflowMutation}
+                                workflowNodeOutputs={filteredWorkflowNodeOutputs ?? []}
+                            />
+                            <DataPillPanel
+                                className="fixed inset-y-0 right-[465px] rounded-none"
+                                isLoading={isWorkflowNodeOutputsPending}
+                                previousComponentDefinitions={previousComponentDefinitions}
+                                workflowNodeOutputs={filteredWorkflowNodeOutputs ?? []}
+                            />
+                        </>
+                    )}
                 </DialogContent>
             </Dialog>
 
