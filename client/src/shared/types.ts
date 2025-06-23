@@ -149,6 +149,7 @@ export type TaskDispatcherDataType = BranchDataType &
     ParallelDataType;
 
 export type ClusterElementItemType = {
+    clusterElements?: ClusterElementsType;
     label?: string;
     metadata?: {
         ui?: {

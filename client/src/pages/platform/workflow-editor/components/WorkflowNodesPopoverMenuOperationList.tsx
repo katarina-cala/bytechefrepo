@@ -5,13 +5,21 @@ import {
     ActionDefinitionApi,
     ClusterElementDefinitionApi,
     ComponentDefinition,
+    ComponentDefinitionApi,
     TriggerDefinition,
     TriggerDefinitionApi,
 } from '@/shared/middleware/platform/configuration';
 import {ActionDefinitionKeys} from '@/shared/queries/platform/actionDefinitions.queries';
 import {ClusterElementDefinitionKeys} from '@/shared/queries/platform/clusterElementDefinitions.queries';
+import {ComponentDefinitionKeys} from '@/shared/queries/platform/componentDefinitions.queries';
 import {TriggerDefinitionKeys} from '@/shared/queries/platform/triggerDefinitions.queries';
-import {ClickedOperationType, ClusterElementItemType, NodeDataType, PropertyAllType} from '@/shared/types';
+import {
+    ClickedOperationType,
+    ClusterElementItemType,
+    ClusterElementsType,
+    NodeDataType,
+    PropertyAllType,
+} from '@/shared/types';
 import {Component1Icon} from '@radix-ui/react-icons';
 import {useQueryClient} from '@tanstack/react-query';
 import {ComponentIcon} from 'lucide-react';
@@ -67,7 +75,11 @@ const WorkflowNodesPopoverMenuOperationList = ({
         }))
     );
 
-    const {nodes: clusterElementNodes} = useClusterElementsDataStore();
+    const {nodes: clusterElementNodes} = useClusterElementsDataStore(
+        useShallow((state) => ({
+            nodes: state.nodes,
+        }))
+    );
 
     const {clusterElementsCanvasOpen, rootClusterElementNodeData, setRootClusterElementNodeData} =
         useWorkflowEditorStore();
@@ -141,7 +153,13 @@ const WorkflowNodesPopoverMenuOperationList = ({
     );
 
     const saveClusterElementToWorkflow = useCallback(
-        (clusterElementData: ClusterElementItemType, clusterElementType: string, isMultipleElements: boolean) => {
+        (
+            clusterElementData: ClusterElementItemType,
+            clusterElementType: string,
+            isMultipleElements: boolean,
+            sourceNode: Node
+            // parentDefinition: ComponentDefinition
+        ) => {
             if (!workflow.definition || !rootClusterElementDefinition) {
                 return;
             }
@@ -171,14 +189,14 @@ const WorkflowNodesPopoverMenuOperationList = ({
                 rootClusterElementDefinition
             );
 
-            if (isMultipleElements) {
-                clusterElements[clusterElementType] = [
-                    ...(Array.isArray(clusterElements[clusterElementType]) ? clusterElements[clusterElementType] : []),
-                    clusterElementData,
-                ];
-            } else {
-                clusterElements[clusterElementType] = clusterElementData;
-            }
+            const updatedClusterElements = addClusterElement(
+                clusterElements,
+                clusterElementData,
+                clusterElementType,
+                isMultipleElements,
+                nodePositions,
+                sourceNode
+            );
 
             Object.entries(clusterElements).forEach(([elementKey, elementValue]) => {
                 if (elementKey !== clusterElementType || isMultipleElements) {
@@ -248,7 +266,7 @@ const WorkflowNodesPopoverMenuOperationList = ({
 
             const updatedNodeData = {
                 ...currentClusterRootTask,
-                clusterElements,
+                clusterElements: updatedClusterElements,
                 metadata,
             };
 
@@ -285,9 +303,9 @@ const WorkflowNodesPopoverMenuOperationList = ({
             setRootClusterElementNodeData,
             currentNode,
             invalidateWorkflowQueries,
-            queryClient,
             updateWorkflowMutation,
             setCurrentNode,
+            queryClient,
         ]
     );
 
@@ -326,9 +344,43 @@ const WorkflowNodesPopoverMenuOperationList = ({
             }
 
             if (clusterElementsCanvasOpen && clusterElementType) {
+                // console.log('cluster element type', clusterElementType);
                 captureComponentUsed(componentName, undefined, operationName);
 
-                const currentClusterElementDefinition = rootClusterElementDefinition?.clusterElementTypes?.find(
+                const sourceNode = clusterElementNodes.find((node) => node.id === sourceNodeId);
+
+                const isNestedRoot = sourceNode?.data.isNestedClusterRoot || sourceNode?.data.nestedClusterRoot;
+
+                let parentDefinition: ComponentDefinition | undefined;
+
+                if (isNestedRoot) {
+                    const nestedComponentName =
+                        sourceNode?.data.componentName || (sourceNode?.data.type as string)?.split('/')[0];
+
+                    if (nestedComponentName) {
+                        parentDefinition = await queryClient.fetchQuery({
+                            queryFn: () =>
+                                new ComponentDefinitionApi().getComponentDefinition({
+                                    componentName: nestedComponentName as string,
+                                    componentVersion: (sourceNode?.data.version || 1) as number,
+                                }),
+                            queryKey: ComponentDefinitionKeys.componentDefinition({
+                                componentName: nestedComponentName as string,
+                                componentVersion: (sourceNode?.data.version || 1) as number,
+                            }),
+                        });
+                    }
+                } else {
+                    parentDefinition = rootClusterElementDefinition;
+                }
+
+                if (!parentDefinition) {
+                    console.error('Could not find definition for parent cluster root');
+
+                    return;
+                }
+
+                const currentClusterElementDefinition = parentDefinition?.clusterElementTypes?.find(
                     (currentClusterElementType) =>
                         convertNameToCamelCase(currentClusterElementType.name as string) === clusterElementType
                 );
@@ -356,6 +408,7 @@ const WorkflowNodesPopoverMenuOperationList = ({
                 });
 
                 const clusterElementData = {
+                    clusterElements: componentDefinition.clusterRoot ? {} : undefined,
                     label: clickedOperation.componentLabel,
                     metadata: {},
                     name: getFormattedName(componentName),
@@ -366,7 +419,13 @@ const WorkflowNodesPopoverMenuOperationList = ({
                     type: `${componentName}/v${version}/${operationName}`,
                 };
 
-                saveClusterElementToWorkflow(clusterElementData, clusterElementType, isMultipleElements);
+                saveClusterElementToWorkflow(
+                    clusterElementData,
+                    clusterElementType,
+                    isMultipleElements,
+                    sourceNode,
+                    parentDefinition
+                );
 
                 setPopoverOpen(false);
 
@@ -475,14 +534,15 @@ const WorkflowNodesPopoverMenuOperationList = ({
             captureComponentUsed,
             saveNodeToWorkflow,
             setPopoverOpen,
-            rootClusterElementDefinition?.clusterElementTypes,
+            clusterElementNodes,
+            rootClusterElementDefinition,
             saveClusterElementToWorkflow,
+            sourceNodeId,
             edges,
             nodes,
             invalidateWorkflowQueries,
             updateWorkflowMutation,
             workflow,
-            sourceNodeId,
         ]
     );
 
@@ -538,3 +598,201 @@ const WorkflowNodesPopoverMenuOperationList = ({
 };
 
 export default WorkflowNodesPopoverMenuOperationList;
+
+const addClusterElement = (
+    clusterElements: ClusterElementsType,
+    clusterElementData: ClusterElementItemType,
+    clusterElementType: string,
+    isMultipleElements: boolean,
+    nodePositions: Record<string, {x: number; y: number}>,
+    sourceNode: Node
+): ClusterElementsType => {
+    const nestedClusterRootElements = processNestedClusterElements(
+        clusterElements,
+        nodePositions,
+        sourceNode,
+        clusterElementData,
+        clusterElementType,
+        isMultipleElements
+    );
+
+    // If parent wasn't found and we have a source node, add to top level root (main root)
+    if (!nestedClusterRootElements.parentFound && sourceNode && clusterElementData && clusterElementType) {
+        if (isMultipleElements) {
+            nestedClusterRootElements.nestedClusterElements[clusterElementType] = [
+                ...(Array.isArray(nestedClusterRootElements.nestedClusterElements[clusterElementType])
+                    ? nestedClusterRootElements.nestedClusterElements[clusterElementType]
+                    : []),
+                clusterElementData,
+            ];
+        } else {
+            nestedClusterRootElements.nestedClusterElements[clusterElementType] = clusterElementData;
+        }
+    }
+
+    return nestedClusterRootElements.nestedClusterElements;
+};
+
+const processNestedClusterElements = (
+    clusterElements: ClusterElementsType,
+    nodePositions: Record<string, {x: number; y: number}>,
+    sourceNode?: Node,
+    clusterElementData?: ClusterElementItemType,
+    elementType?: string,
+    isMultipleElements?: boolean
+): {parentFound: boolean; nestedClusterElements: ClusterElementsType} => {
+    const updatedClusterElements = {...clusterElements};
+    let parentFound = false;
+
+    // Find parent root and add element
+    if (sourceNode && clusterElementData && elementType !== undefined) {
+        Object.entries(updatedClusterElements).forEach(([, value]) => {
+            if (parentFound) return;
+
+            if (Array.isArray(value)) {
+                value.forEach((item) => {
+                    if (parentFound) return;
+
+                    // Check if this is the parent we're looking for
+                    if (item.name === sourceNode.id) {
+                        if (!item.clusterElements) {
+                            item.clusterElements = {};
+                        }
+
+                        // Add element to this parent
+                        if (isMultipleElements) {
+                            item.clusterElements[elementType] = [
+                                ...(Array.isArray(item.clusterElements[elementType])
+                                    ? item.clusterElements[elementType]
+                                    : []),
+                                clusterElementData,
+                            ];
+                        } else {
+                            item.clusterElements[elementType] = clusterElementData;
+                        }
+
+                        parentFound = true;
+                        return;
+                    }
+
+                    if (item.clusterElements) {
+                        const result = processNestedClusterElements(
+                            item.clusterElements,
+                            nodePositions,
+                            sourceNode,
+                            clusterElementData,
+                            elementType,
+                            isMultipleElements
+                        );
+
+                        if (result.parentFound) {
+                            item.clusterElements = result.nestedClusterElements;
+                            parentFound = true;
+                            return;
+                        }
+                    }
+                });
+            } else if (value && typeof value === 'object') {
+                // Check if this is the parent we're looking for
+                if (value.name === sourceNode.id) {
+                    if (!value.clusterElements) {
+                        value.clusterElements = {};
+                    }
+
+                    // Add element to this parent
+                    if (isMultipleElements) {
+                        value.clusterElements[elementType] = [
+                            ...(Array.isArray(value.clusterElements[elementType])
+                                ? value.clusterElements[elementType]
+                                : []),
+                            clusterElementData,
+                        ];
+                    } else {
+                        value.clusterElements[elementType] = clusterElementData;
+                    }
+
+                    parentFound = true;
+
+                    return;
+                }
+
+                if (value.clusterElements) {
+                    const result = processNestedClusterElements(
+                        value.clusterElements,
+                        nodePositions,
+                        sourceNode,
+                        clusterElementData,
+                        elementType,
+                        isMultipleElements
+                    );
+
+                    if (result.parentFound) {
+                        value.clusterElements = result.nestedClusterElements;
+                        parentFound = true;
+
+                        return;
+                    }
+                }
+            }
+        });
+    }
+
+    // Update positions for all cluster elements
+    Object.entries(updatedClusterElements).forEach(([elementType, elementValue]) => {
+        if (Array.isArray(elementValue)) {
+            updatedClusterElements[elementType] = elementValue.map((element) => {
+                const elementNodeId = element.name;
+                const elementPosition = nodePositions[elementNodeId];
+
+                const updatedElement = elementPosition
+                    ? {
+                          ...element,
+                          metadata: {
+                              ...element?.metadata,
+                              ui: {
+                                  ...element?.metadata?.ui,
+                                  nodePosition: elementPosition,
+                              },
+                          },
+                      }
+                    : element;
+
+                // Update positions for nested clster elements
+                if (updatedElement.clusterElements) {
+                    const {nestedClusterElements} = processNestedClusterElements(
+                        updatedElement.clusterElements,
+                        nodePositions
+                    );
+                    updatedElement.clusterElements = nestedClusterElements;
+                }
+
+                return updatedElement;
+            });
+        } else if (elementValue && typeof elementValue === 'object') {
+            const elementNodeId = elementValue.name;
+            const elementPosition = nodePositions[elementNodeId];
+
+            if (elementPosition) {
+                updatedClusterElements[elementType] = {
+                    ...elementValue,
+                    metadata: {
+                        ...elementValue?.metadata,
+                        ui: {
+                            ...elementValue?.metadata?.ui,
+                            nodePosition: elementPosition,
+                        },
+                    },
+                };
+            }
+
+            // Update positions for nested clsster elements
+            const element = updatedClusterElements[elementType] as ClusterElementItemType;
+            if (element?.clusterElements) {
+                const {nestedClusterElements} = processNestedClusterElements(element.clusterElements, nodePositions);
+                element.clusterElements = nestedClusterElements;
+            }
+        }
+    });
+
+    return {nestedClusterElements: updatedClusterElements, parentFound: parentFound};
+};

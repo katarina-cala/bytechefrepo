@@ -25,6 +25,7 @@ export function initializeClusterElementsObject(
                 clusterElements[clusterElementType] = (
                     clusterElementsData[clusterElementType] as ClusterElementItemType[]
                 ).map((element) => ({
+                    clusterElements: element.clusterElements,
                     label: element.label,
                     metadata: element.metadata,
                     name: element.name,
@@ -36,6 +37,7 @@ export function initializeClusterElementsObject(
 
                 if (element && !Array.isArray(element)) {
                     clusterElements[clusterElementType] = {
+                        clusterElements: element.clusterElements,
                         label: element.label,
                         metadata: element.metadata,
                         name: element.name,
