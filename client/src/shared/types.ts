@@ -135,13 +135,16 @@ export type TaskDispatcherDataType = BranchDataType &
     ParallelDataType;
 
 export type ClusterElementItemType = {
+    clusterElements?: ClusterElementsType;
     label?: string;
     metadata?: {
         ui?: {
             nodePosition?: {x: number; y: number};
+            placeholderPositions?: Record<string, {x: number; y: number}>;
         };
     };
     name: string;
+    parentClusterRootId?: string;
     type: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     parameters?: {[key: string]: any};

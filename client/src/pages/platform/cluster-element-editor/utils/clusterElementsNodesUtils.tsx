@@ -5,13 +5,13 @@ import {ComponentIcon} from 'lucide-react';
 import InlineSVG from 'react-inlinesvg';
 
 export function createPlaceholderNode(
-    currentRootClusterElementNodeName: string,
+    clusterRootId: string,
     elementLabel: string,
     elementType: string,
     nodePositions: Record<string, {x: number; y: number}> = {},
     rootPlaceholderPositions: Record<string, {x: number; y: number}> = {}
 ): Node {
-    const nodeId = `${currentRootClusterElementNodeName}-${elementType}-placeholder-0`;
+    const nodeId = `${clusterRootId}-${elementType}-placeholder-0`;
 
     return {
         data: {

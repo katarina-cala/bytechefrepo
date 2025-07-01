@@ -6,6 +6,7 @@ import useClusterElementsDataStore from '../../cluster-element-editor/stores/use
 import useWorkflowEditorStore from '../stores/useWorkflowEditorStore';
 import useWorkflowNodeDetailsPanelStore from '../stores/useWorkflowNodeDetailsPanelStore';
 import saveWorkflowDefinition from './saveWorkflowDefinition';
+import updateClusterElementsPositions from './updateClusterElementsPositions';
 
 interface SaveClusterElementNodesPositionProps {
     invalidateWorkflowQueries: () => void;
@@ -49,57 +50,27 @@ export default function saveClusterElementNodesPosition({
         return accumulator;
     }, {});
 
-    Object.entries(clusterElements).forEach(([elementKey, elementValue]) => {
-        if (Array.isArray(elementValue)) {
-            clusterElements[elementKey] = elementValue.map((element) => {
-                const elementNodeId = element.name;
+    const placeholdersByParent: Record<string, Record<string, {x: number; y: number}>> = {};
 
-                const elementPosition = nodePositions[elementNodeId];
+    Object.entries(nodePositions).forEach(([nodeId, position]) => {
+        if (nodeId.includes('placeholder')) {
+            const parentId = nodeId.split('-')[0];
 
-                if (elementPosition) {
-                    return {
-                        ...element,
-                        metadata: {
-                            ...element?.metadata,
-                            ui: {
-                                ...element?.metadata?.ui,
-                                nodePosition: elementPosition,
-                            },
-                        },
-                    };
-                }
-
-                return element;
-            });
-        } else if (elementValue != null && 'name' in elementValue) {
-            const elementNodeId = elementValue.name;
-            const elementPosition = nodePositions[elementNodeId];
-
-            if (elementPosition) {
-                clusterElements[elementKey] = {
-                    ...elementValue,
-                    metadata: {
-                        ...elementValue?.metadata,
-                        ui: {
-                            ...elementValue?.metadata?.ui,
-                            nodePosition: elementPosition,
-                        },
-                    },
-                } as ClusterElementItemType;
+            if (!placeholdersByParent[parentId]) {
+                placeholdersByParent[parentId] = {};
             }
+
+            placeholdersByParent[parentId][nodeId] = position;
         }
     });
 
-    const placeholderPositions = Object.entries(nodePositions).reduce<Record<string, {x: number; y: number}>>(
-        (accumulator, [nodeId, position]) => {
-            if (nodeId.includes('placeholder')) {
-                accumulator[nodeId] = position;
-            }
+    const rootPlaceholderPositions = placeholdersByParent[rootClusterElementNodeData.workflowNodeName] || {};
 
-            return accumulator;
-        },
-        {}
-    );
+    const updatedClusterElements = updateClusterElementsPositions({
+        clusterElements,
+        nodePositions,
+        placeholdersByParent,
+    });
 
     const rootNodePosition = rootClusterElementNodeData?.workflowNodeName
         ? nodePositions[rootClusterElementNodeData.workflowNodeName]
@@ -110,25 +81,27 @@ export default function saveClusterElementNodesPosition({
         ui: {
             ...currentClusterRootTask.metadata?.ui,
             nodePosition: rootNodePosition,
-            placeholderPositions: placeholderPositions || {},
+            placeholderPositions: rootPlaceholderPositions || {},
         },
     };
 
     const updatedNodeData = {
         ...currentClusterRootTask,
-        clusterElements,
+        clusterElements: updatedClusterElements,
         metadata,
     };
 
     setRootClusterElementNodeData({
         ...rootClusterElementNodeData,
-        clusterElements,
+        clusterElements: updatedClusterElements,
+        metadata,
     } as typeof rootClusterElementNodeData);
 
     if (currentNode?.rootClusterElement) {
         setCurrentNode({
             ...currentNode,
-            clusterElements,
+            clusterElements: updatedClusterElements,
+            metadata,
         });
     }
 
