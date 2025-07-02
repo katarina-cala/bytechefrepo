@@ -197,6 +197,7 @@ export type NodeDataType = {
         parallelId: string;
         index: number;
     };
+    parentClusterRootId?: string;
     rootClusterElement?: boolean;
     taskDispatcher?: boolean;
     taskDispatcherId?: string;

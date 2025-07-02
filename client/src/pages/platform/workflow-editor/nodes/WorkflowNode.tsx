@@ -102,8 +102,9 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
 
     const {updateWorkflowMutation} = useWorkflowEditor();
 
-    const isClusterElement = 'clusterElementType' in data;
+    const isClusterElement = !!data.clusterElementType;
     const isNestedClusterRoot = !isRootClusterElement && !!data.clusterElements;
+    const parentClusterRootId = data.parentClusterRootId || id.split('-')[0];
 
     const handleDeleteNodeClick = (data: NodeDataType) => {
         if (data) {
@@ -126,6 +127,8 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
         workflowNodeDescription?.description && !data.clusterElementType
             ? workflowNodeDescription.description
             : clusterElementDefinitionData?.description;
+
+    // console.log('id', id, 'data', data);
 
     return (
         <div
@@ -179,7 +182,7 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                             hideClusterElementComponents={!data.clusterElementType}
                             hideTaskDispatchers={!!data.clusterElementType}
                             hideTriggerComponents
-                            sourceNodeId={currentNode.name}
+                            sourceNodeId={data.clusterElementType ? parentClusterRootId : id}
                         >
                             <Button
                                 className="bg-white p-2 shadow-md hover:text-blue-500 hover:shadow-sm"
