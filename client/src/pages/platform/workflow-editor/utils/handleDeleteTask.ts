@@ -2,7 +2,13 @@ import useWorkflowTestChatStore from '@/pages/platform/workflow-editor/stores/us
 import {SPACE} from '@/shared/constants';
 import {Workflow, WorkflowTask} from '@/shared/middleware/platform/configuration';
 import {WorkflowNodeOutputKeys} from '@/shared/queries/platform/workflowNodeOutputs.queries';
-import {BranchCaseType, NodeDataType, WorkflowDefinitionType, WorkflowTaskType} from '@/shared/types';
+import {
+    BranchCaseType,
+    ClusterElementsType,
+    NodeDataType,
+    WorkflowDefinitionType,
+    WorkflowTaskType,
+} from '@/shared/types';
 import {QueryClient, UseMutationResult} from '@tanstack/react-query';
 
 import {WorkflowDataType} from '../stores/useWorkflowDataStore';
@@ -171,53 +177,48 @@ export default function handleDeleteTask({
         }) as Array<WorkflowTaskType>;
     } else if (clusterElementsCanvasOpen && rootClusterElementNodeData) {
         const rootClusterElementTask = workflowTasks.find((task) => task.name === rootClusterElementNodeData?.name);
-        const updatedClusterElements = {...rootClusterElementNodeData.clusterElements};
 
-        if (rootClusterElementTask && rootClusterElementTask.clusterElements) {
-            const currentClusterElementType =
-                data.clusterElementType as keyof typeof rootClusterElementTask.clusterElements;
-
-            const clusterElementValue = rootClusterElementTask.clusterElements[currentClusterElementType];
-
-            if (Array.isArray(clusterElementValue) && currentClusterElementType !== undefined) {
-                const clusterElementName = data.name;
-
-                updatedClusterElements[currentClusterElementType] = clusterElementValue.filter(
-                    (element) => element.name !== clusterElementName
-                );
-
-                rootClusterElementTask.clusterElements[currentClusterElementType] = [
-                    ...updatedClusterElements[currentClusterElementType],
-                ];
-            } else {
-                updatedClusterElements[currentClusterElementType] = null;
-
-                rootClusterElementTask.clusterElements[currentClusterElementType] = null;
-            }
+        if (!rootClusterElementTask || !rootClusterElementTask.clusterElements) {
+            return;
         }
 
-        if (setRootClusterElementNodeData && setCurrentNode) {
-            if (currentNode?.rootClusterElement) {
-                setCurrentNode({
-                    ...currentNode,
-                    clusterElements: updatedClusterElements,
-                });
-            } else {
+        const deleteResult = deleteClusterElement(
+            rootClusterElementTask.clusterElements,
+            data.name,
+            data.clusterElementType
+        );
+
+        const updatedRootClusterElementTask = {
+            ...rootClusterElementTask,
+            clusterElements: deleteResult.elements,
+        };
+
+        if (deleteResult.elementFound) {
+            const updatedClusterElements = deleteResult.elements;
+
+            if (setRootClusterElementNodeData && setCurrentNode) {
+                if (currentNode?.rootClusterElement) {
+                    setCurrentNode({
+                        ...currentNode,
+                        clusterElements: updatedClusterElements,
+                    });
+                }
+
                 setRootClusterElementNodeData({
                     ...rootClusterElementNodeData,
                     clusterElements: updatedClusterElements,
                 });
-            }
 
-            if (currentNode?.name === data.name) {
-                useWorkflowNodeDetailsPanelStore.getState().reset();
+                if (currentNode?.name === data.name) {
+                    useWorkflowNodeDetailsPanelStore.getState().reset();
 
-                setCurrentNode({
-                    ...rootClusterElementNodeData,
-                    clusterElements: updatedClusterElements,
-                });
+                    setCurrentNode({
+                        ...rootClusterElementNodeData,
+                        clusterElements: updatedClusterElements,
+                    });
 
-                useWorkflowNodeDetailsPanelStore.getState().setWorkflowNodeDetailsPanelOpen(true);
+                    useWorkflowNodeDetailsPanelStore.getState().setWorkflowNodeDetailsPanelOpen(true);
+                }
             }
         }
 
@@ -226,7 +227,7 @@ export default function handleDeleteTask({
                 return task;
             }
 
-            return rootClusterElementTask;
+            return updatedRootClusterElementTask;
         }) as Array<WorkflowTaskType>;
     } else {
         updatedTasks = workflowTasks.filter((task: WorkflowTask) => task.name !== data.name);
@@ -265,4 +266,97 @@ export default function handleDeleteTask({
             },
         }
     );
+}
+
+interface DeleteClusterElementProps {
+    elements: ClusterElementsType;
+    elementFound: boolean;
+}
+
+function deleteClusterElement(
+    clusterElements: ClusterElementsType,
+    clickedElementName: string,
+    clickedElementType?: string
+): DeleteClusterElementProps {
+    const result = {elementFound: false, elements: {...clusterElements}};
+
+    Object.entries(result.elements).forEach(([elementType, elementValue]) => {
+        if (result.elementFound) {
+            return;
+        }
+
+        console.log('result.elements', result.elements);
+
+        if (Array.isArray(elementValue)) {
+            const elementIndex = elementValue.findIndex(
+                (element) =>
+                    element.name === clickedElementName && (!clickedElementType || elementType === clickedElementType)
+            );
+
+            //first level elements (obicno brisanje multiple element cluster element)
+            if (elementIndex >= 0) {
+                result.elements[elementType] = elementValue.filter((element) => element.name !== clickedElementName);
+
+                result.elementFound = true;
+
+                return;
+            }
+
+            // nested elements (rekurzija kada je multiple element cluster element ujedno i cluster root i zelimo izbrisat njegovu dicu)
+            result.elements[elementType] = elementValue.map((element) => {
+                if (!element.clusterElements) {
+                    return element;
+                }
+
+                const nestedResult = deleteClusterElement(
+                    element.clusterElements,
+                    clickedElementName,
+                    clickedElementType
+                );
+
+                if (nestedResult.elementFound) {
+                    result.elementFound = true;
+
+                    return {
+                        ...element,
+                        clusterElements: nestedResult.elements,
+                    };
+                }
+
+                return element;
+            });
+        } else if (elementValue && typeof elementValue === 'object') {
+            console.log('going into single element', elementValue);
+            if (
+                elementValue.name === clickedElementName &&
+                (!clickedElementType || elementType === clickedElementType)
+            ) {
+                result.elements[elementType] = null;
+
+                result.elementFound = true;
+
+                return;
+            }
+
+            //  nested elements
+            if (!result.elementFound && elementValue.clusterElements) {
+                const nestedResult = deleteClusterElement(
+                    elementValue.clusterElements,
+                    clickedElementName,
+                    clickedElementType
+                );
+
+                if (nestedResult.elementFound) {
+                    result.elementFound = true;
+
+                    result.elements[elementType] = {
+                        ...elementValue,
+                        clusterElements: nestedResult.elements,
+                    };
+                }
+            }
+        }
+    });
+
+    return result;
 }
