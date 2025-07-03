@@ -40,6 +40,7 @@ export default function createClusterElementNodes({
                 clusterElementData.forEach((element) => {
                     // Create the node
                     const elementNode = createMultipleElementsNode(
+                        clusterRootId,
                         element,
                         elementType,
                         isMultipleElementsNode,
@@ -84,6 +85,7 @@ export default function createClusterElementNodes({
                 // Create the node
                 const elementNode = createSingleElementsNode(
                     clusterElementData,
+                    clusterRootId,
                     elementLabel,
                     elementType,
                     currentNodePositions

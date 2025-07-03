@@ -335,7 +335,6 @@ const WorkflowNodesPopoverMenuOperationList = ({
 
                     return;
                 }
-                console.log('parentDefinition', parentDefinition);
 
                 const currentClusterElementTypeDefinition = parentDefinition?.clusterElementTypes?.find(
                     (currentClusterElementType) =>

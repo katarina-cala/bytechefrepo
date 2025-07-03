@@ -20,6 +20,7 @@ export function createPlaceholderNode(
             label: '+',
         },
         id: nodeId,
+        parentId: clusterRootId,
         position: rootPlaceholderPositions[nodeId] || nodePositions[nodeId] || DEFAULT_NODE_POSITION,
         type: 'placeholder',
     };
@@ -27,6 +28,7 @@ export function createPlaceholderNode(
 
 export function createSingleElementsNode(
     clusterElementData: ClusterElementItemType,
+    clusterRootId: string,
     elementLabel: string,
     elementType: string,
     nodePositions: Record<string, {x: number; y: number}> = {}
@@ -69,12 +71,14 @@ export function createSingleElementsNode(
             workflowNodeName: name,
         },
         id: name,
+        parentId: clusterRootId,
         position: nodePositions[name] || nodePosition,
         type: 'workflow',
     };
 }
 
 export function createMultipleElementsNode(
+    clusterRootId: string,
     element: ClusterElementItemType,
     elementType: string,
     isMultipleElementsNode: boolean,
@@ -118,6 +122,7 @@ export function createMultipleElementsNode(
             workflowNodeName: name,
         },
         id: name,
+        parentId: clusterRootId,
         position: nodePositions[name] || nodePosition,
         type: 'workflow',
     };
