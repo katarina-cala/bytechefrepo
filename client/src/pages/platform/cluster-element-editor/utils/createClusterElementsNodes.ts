@@ -49,6 +49,7 @@ export default function createClusterElementNodes({
 
                     // Set root parent id
                     elementNode.data.parentClusterRootId = clusterRootId;
+                    elementNode.data.isNestedClusterRoot = !!element.clusterElements;
 
                     createdNodes.push(elementNode);
 
@@ -93,6 +94,7 @@ export default function createClusterElementNodes({
 
                 // Set root parent id
                 elementNode.data.parentClusterRootId = clusterRootId;
+                elementNode.data.isNestedClusterRoot = !!clusterElementData.clusterElements;
 
                 createdNodes.push(elementNode);
 

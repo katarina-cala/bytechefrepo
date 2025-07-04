@@ -81,8 +81,27 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
         clusterElementsCanvasOpen && !!isRootClusterElement && !!rootClusterElementNodeData
     );
 
+    const isClusterElement = !!data.clusterElementType;
+    const isNestedClusterRoot = !!data.isNestedClusterRoot;
+    const parentClusterRootId = data.parentClusterRootId || id.split('-')[0];
+
+    const calculateNodeWidth = (handleCount: number): number => {
+        const baseWidth = 252; // Base width for nodes with 4 or fewer handles
+        const handleStep = 60; // Additional width per handle beyond 4
+
+        if (!handleCount || handleCount <= 4) {
+            return baseWidth;
+        }
+
+        return baseWidth + (handleCount - 4) * handleStep;
+    };
+
+    const clusterElementTypesCount = rootClusterElementDefinition?.clusterElementTypes?.length || 0;
+
+    const nodeWidth = isRootClusterElement || isNestedClusterRoot ? calculateNodeWidth(clusterElementTypesCount) : 252;
+
     const getHandlePosition = (index: number, totalHandles: number = 1): string => {
-        const nodeWidth = 252;
+        // const nodeWidth = 252;
         const nodeEdgeBuffer = nodeWidth * 0.1;
 
         const usableNodeWidth = nodeWidth - nodeEdgeBuffer * 2;
@@ -101,10 +120,6 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
     const queryClient = useQueryClient();
 
     const {updateWorkflowMutation} = useWorkflowEditor();
-
-    const isClusterElement = !!data.clusterElementType;
-    const isNestedClusterRoot = !isRootClusterElement && !!data.clusterElements;
-    const parentClusterRootId = data.parentClusterRootId || id.split('-')[0];
 
     const handleDeleteNodeClick = (data: NodeDataType) => {
         if (data) {
@@ -127,8 +142,6 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
         workflowNodeDescription?.description && !data.clusterElementType
             ? workflowNodeDescription.description
             : clusterElementDefinitionData?.description;
-
-    // console.log('id', id, 'data', data);
 
     return (
         <div
@@ -226,6 +239,11 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                             (isRootClusterElement || isNestedClusterRoot) && `min-w-[252px]`
                         )}
                         onClick={handleNodeClick}
+                        style={
+                            isRootClusterElement || isNestedClusterRoot
+                                ? {width: `${nodeWidth}px`, minWidth: `${nodeWidth}px`}
+                                : undefined
+                        }
                     >
                         <div
                             className={twMerge(
@@ -292,6 +310,7 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                                 position={Position.Top}
                                 type="target"
                             />
+
                             {rootClusterElementDefinition.clusterElementTypes.map((clusterElementType, index) => (
                                 <Handle
                                     className={twMerge(styles.handle)}
