@@ -2,17 +2,12 @@ import useWorkflowTestChatStore from '@/pages/platform/workflow-editor/stores/us
 import {SPACE} from '@/shared/constants';
 import {Workflow, WorkflowTask} from '@/shared/middleware/platform/configuration';
 import {WorkflowNodeOutputKeys} from '@/shared/queries/platform/workflowNodeOutputs.queries';
-import {
-    BranchCaseType,
-    ClusterElementsType,
-    NodeDataType,
-    WorkflowDefinitionType,
-    WorkflowTaskType,
-} from '@/shared/types';
+import {BranchCaseType, NodeDataType, WorkflowDefinitionType, WorkflowTaskType} from '@/shared/types';
 import {QueryClient, UseMutationResult} from '@tanstack/react-query';
 
 import {WorkflowDataType} from '../stores/useWorkflowDataStore';
 import useWorkflowNodeDetailsPanelStore from '../stores/useWorkflowNodeDetailsPanelStore';
+import deleteClusterElement from './deleteClusterElement';
 import {TASK_DISPATCHER_CONFIG} from './taskDispatcherConfig';
 
 interface HandleDeleteTaskProps {
@@ -266,97 +261,4 @@ export default function handleDeleteTask({
             },
         }
     );
-}
-
-interface DeleteClusterElementProps {
-    elements: ClusterElementsType;
-    elementFound: boolean;
-}
-
-function deleteClusterElement(
-    clusterElements: ClusterElementsType,
-    clickedElementName: string,
-    clickedElementType?: string
-): DeleteClusterElementProps {
-    const result = {elementFound: false, elements: {...clusterElements}};
-
-    Object.entries(result.elements).forEach(([elementType, elementValue]) => {
-        if (result.elementFound) {
-            return;
-        }
-
-        console.log('result.elements', result.elements);
-
-        if (Array.isArray(elementValue)) {
-            const elementIndex = elementValue.findIndex(
-                (element) =>
-                    element.name === clickedElementName && (!clickedElementType || elementType === clickedElementType)
-            );
-
-            //first level elements (obicno brisanje multiple element cluster element)
-            if (elementIndex >= 0) {
-                result.elements[elementType] = elementValue.filter((element) => element.name !== clickedElementName);
-
-                result.elementFound = true;
-
-                return;
-            }
-
-            // nested elements (rekurzija kada je multiple element cluster element ujedno i cluster root i zelimo izbrisat njegovu dicu)
-            result.elements[elementType] = elementValue.map((element) => {
-                if (!element.clusterElements) {
-                    return element;
-                }
-
-                const nestedResult = deleteClusterElement(
-                    element.clusterElements,
-                    clickedElementName,
-                    clickedElementType
-                );
-
-                if (nestedResult.elementFound) {
-                    result.elementFound = true;
-
-                    return {
-                        ...element,
-                        clusterElements: nestedResult.elements,
-                    };
-                }
-
-                return element;
-            });
-        } else if (elementValue && typeof elementValue === 'object') {
-            console.log('going into single element', elementValue);
-            if (
-                elementValue.name === clickedElementName &&
-                (!clickedElementType || elementType === clickedElementType)
-            ) {
-                result.elements[elementType] = null;
-
-                result.elementFound = true;
-
-                return;
-            }
-
-            //  nested elements
-            if (!result.elementFound && elementValue.clusterElements) {
-                const nestedResult = deleteClusterElement(
-                    elementValue.clusterElements,
-                    clickedElementName,
-                    clickedElementType
-                );
-
-                if (nestedResult.elementFound) {
-                    result.elementFound = true;
-
-                    result.elements[elementType] = {
-                        ...elementValue,
-                        clusterElements: nestedResult.elements,
-                    };
-                }
-            }
-        }
-    });
-
-    return result;
 }
