@@ -167,17 +167,27 @@ export const getLayoutedElements = ({canvasWidth, edges, isClusterElementsCanvas
                 ([, value]) => value !== null && value !== undefined && !(Array.isArray(value) && value.length === 0)
             );
 
+        const allNodes = [...nodes];
+
+        const placeholderNodes = allNodes.filter((node) => node.type === 'placeholder');
+
         const nodesWithPositions = hasValidClusterElements
-            ? nodes.filter(
-                  (node) => containsNodePosition(node.data.metadata) || (node.position.x !== 0 && node.position.y !== 0)
+            ? allNodes.filter(
+                  (node) =>
+                      node.type !== 'placeholder' &&
+                      (containsNodePosition(node.data.metadata) || (node.position.x !== 0 && node.position.y !== 0))
               )
             : [];
 
         const nodesToLayout = hasValidClusterElements
-            ? nodes.filter(
-                  (node) => !containsNodePosition(node.data.metadata) && node.position.x === 0 && node.position.y === 0
+            ? allNodes.filter(
+                  (node) =>
+                      node.type !== 'placeholder' &&
+                      !containsNodePosition(node.data.metadata) &&
+                      node.position.x === 0 &&
+                      node.position.y === 0
               )
-            : nodes;
+            : allNodes.filter((node) => node.type !== 'placeholder');
 
         let centeringOffsetX = 0;
 
@@ -194,32 +204,85 @@ export const getLayoutedElements = ({canvasWidth, edges, isClusterElementsCanvas
             centeringOffsetX = canvasWidth / 2 - graphCenter;
         }
 
-        let positionedNodes;
+        let positionedNodes = [] as Node[];
 
-        if (hasValidClusterElements && nodesWithPositions.length > 0) {
+        if (nodesWithPositions.length > 0) {
             positionedNodes = [
+                ...positionedNodes,
                 ...nodesWithPositions.map((node) => ({
                     ...node,
                     position: containsNodePosition(node.data.metadata)
                         ? node.data.metadata.ui.nodePosition
                         : node.position,
                 })),
-                ...nodesToLayout.map((node) => ({
-                    ...node,
-                    position: {
-                        x: dagreGraph.node(node.id).x + centeringOffsetX,
-                        y: dagreGraph.node(node.id).y + NODE_HEIGHT,
-                    },
-                })),
             ];
-        } else {
-            positionedNodes = nodesToLayout.map((node) => ({
+        }
+
+        if (nodesToLayout.length > 0) {
+            const mainClusterRootNode = nodesToLayout.filter((node) => !node.parentId);
+            const regularNodesWithPositions = mainClusterRootNode.map((node) => ({
                 ...node,
                 position: {
                     x: dagreGraph.node(node.id).x + centeringOffsetX,
                     y: dagreGraph.node(node.id).y + NODE_HEIGHT,
                 },
             }));
+
+            const childNodes = nodesToLayout.filter((node) => node.parentId);
+            const childNodesWithPositions = childNodes.map((node) => {
+                const parentNode = allNodes.find((n) => n.id === node.parentId);
+                if (!parentNode) {
+                    return node;
+                }
+                const siblingNodes = childNodes.filter((n) => n.parentId === node.parentId && n.type === node.type);
+
+                const siblingNodesIndex = siblingNodes.findIndex((n) => n.id === node.id);
+                const siblingNodesCount = siblingNodes.length;
+
+                const isClusterRoot = node.data.clusterElements !== undefined || node.data.isNestedClusterRoot;
+
+                const nodeWidth = isClusterRoot ? NODE_WIDTH * 2 : NODE_WIDTH;
+                const spaceBetween = NODE_WIDTH * 0.5;
+                const totalWidth = nodeWidth * siblingNodesCount + spaceBetween * (siblingNodesCount - 1);
+                const startX = -totalWidth / 2 + nodeWidth / 2;
+
+                return {
+                    ...node,
+                    position: {
+                        x: startX + siblingNodesIndex * (nodeWidth + spaceBetween),
+                        y: NODE_HEIGHT + 80,
+                    },
+                };
+            });
+
+            positionedNodes = [...positionedNodes, ...regularNodesWithPositions, ...childNodesWithPositions];
+        }
+
+        if (placeholderNodes.length > 0) {
+            const placeholderNodesWithPositions = placeholderNodes.map((node) => {
+                const parentNode = allNodes.find((n) => n.id === node.parentId);
+                if (!parentNode) return node;
+
+                const siblingPlaceholders = placeholderNodes.filter((n) => n.parentId === node.parentId);
+
+                const placeholderIndex = siblingPlaceholders.findIndex((n) => n.id === node.id);
+                const totalPlaceholders = siblingPlaceholders.length;
+
+                const placeholderWidth = 35;
+                const spaceBetween = 30;
+                const totalWidth = placeholderWidth * totalPlaceholders + spaceBetween * (totalPlaceholders - 1);
+                const startX = -totalWidth / 2 + placeholderWidth / 2;
+
+                return {
+                    ...node,
+                    position: {
+                        x: startX + placeholderIndex * (placeholderWidth + spaceBetween),
+                        y: NODE_HEIGHT + 60,
+                    },
+                };
+            });
+
+            positionedNodes = [...positionedNodes, ...placeholderNodesWithPositions];
         }
 
         return {edges, nodes: positionedNodes};
@@ -234,7 +297,7 @@ export const getLayoutedElements = ({canvasWidth, edges, isClusterElementsCanvas
                 ([, value]) => value !== null && value !== undefined && !(Array.isArray(value) && value.length === 0)
             );
 
-        if (hasValidClusterElements && node.type === 'aiAgentNode') {
+        if (hasValidClusterElements && ROOT_CLUSTER_ELEMENT_NAMES.includes(node.data.componentName as string)) {
             positionX -= 85;
         }
 
