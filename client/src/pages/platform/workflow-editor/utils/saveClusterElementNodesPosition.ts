@@ -50,26 +50,9 @@ export default function saveClusterElementNodesPosition({
         return accumulator;
     }, {});
 
-    const placeholdersByParent: Record<string, Record<string, {x: number; y: number}>> = {};
-
-    Object.entries(nodePositions).forEach(([nodeId, position]) => {
-        if (nodeId.includes('placeholder')) {
-            const parentId = nodeId.split('-')[0];
-
-            if (!placeholdersByParent[parentId]) {
-                placeholdersByParent[parentId] = {};
-            }
-
-            placeholdersByParent[parentId][nodeId] = position;
-        }
-    });
-
-    const rootPlaceholderPositions = placeholdersByParent[rootClusterElementNodeData.workflowNodeName] || {};
-
     const updatedClusterElements = updateClusterElementsPositions({
         clusterElements,
         nodePositions,
-        placeholdersByParent,
     });
 
     const rootNodePosition = rootClusterElementNodeData?.workflowNodeName
@@ -81,7 +64,6 @@ export default function saveClusterElementNodesPosition({
         ui: {
             ...currentClusterRootTask.metadata?.ui,
             nodePosition: rootNodePosition,
-            placeholderPositions: rootPlaceholderPositions || {},
         },
     };
 

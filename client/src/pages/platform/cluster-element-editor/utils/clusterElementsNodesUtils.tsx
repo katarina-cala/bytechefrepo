@@ -1,4 +1,4 @@
-import {DEFAULT_NODE_POSITION} from '@/shared/constants';
+import {DEFAULT_NODE_POSITION, ROOT_CLUSTER_HANDLE_STEP, ROOT_CLUSTER_WIDTH} from '@/shared/constants';
 import {ClusterElementItemType} from '@/shared/types';
 import {Node} from '@xyflow/react';
 import {ComponentIcon} from 'lucide-react';
@@ -9,9 +9,44 @@ export function createPlaceholderNode(
     elementLabel: string,
     elementType: string,
     nodePositions: Record<string, {x: number; y: number}> = {},
-    rootPlaceholderPositions: Record<string, {x: number; y: number}> = {}
+    clusterElementTypeIndex: number = 0,
+    totalClusterElementTypeCount: number = 1
 ): Node {
     const nodeId = `${clusterRootId}-${elementType}-placeholder-0`;
+    const placeholderWidth = 28;
+
+    const calculateNodeWidth = (handleCount: number): number => {
+        const baseWidth = ROOT_CLUSTER_WIDTH;
+        const handleStep = ROOT_CLUSTER_HANDLE_STEP;
+
+        if (!handleCount || handleCount <= 4) {
+            return baseWidth;
+        }
+
+        return baseWidth + (handleCount - 4) * handleStep;
+    };
+
+    const getHandlePosition = (index: number, totalHandles: number, nodeWidth: number): number => {
+        const edgeBuffer = nodeWidth * 0.1;
+        const usableWidth = nodeWidth - edgeBuffer * 2;
+
+        if (totalHandles === 1) {
+            return nodeWidth / 2;
+        }
+
+        const step = usableWidth / (totalHandles - 1);
+
+        return edgeBuffer + index * step;
+    };
+
+    const nodeWidth = calculateNodeWidth(totalClusterElementTypeCount);
+
+    const handleX = getHandlePosition(clusterElementTypeIndex, totalClusterElementTypeCount, nodeWidth);
+
+    const position = {
+        x: handleX - placeholderWidth / 2,
+        y: 160,
+    };
 
     return {
         data: {
@@ -21,7 +56,7 @@ export function createPlaceholderNode(
         },
         id: nodeId,
         parentId: clusterRootId,
-        position: rootPlaceholderPositions[nodeId] || nodePositions[nodeId] || DEFAULT_NODE_POSITION,
+        position: position || nodePositions[elementType] || DEFAULT_NODE_POSITION,
         type: 'placeholder',
     };
 }

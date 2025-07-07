@@ -22,6 +22,7 @@ import useWorkflowNodeDetailsPanelStore from '../stores/useWorkflowNodeDetailsPa
 import handleDeleteTask from '../utils/handleDeleteTask';
 import saveClusterElementNodesPosition from '../utils/saveClusterElementNodesPosition';
 import styles from './NodeTypes.module.css';
+import {ROOT_CLUSTER_HANDLE_STEP, ROOT_CLUSTER_WIDTH} from '@/shared/constants';
 
 const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
     const [isHovered, setIsHovered] = useState(false);
@@ -86,8 +87,8 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
     const parentClusterRootId = data.parentClusterRootId || id.split('-')[0];
 
     const calculateNodeWidth = (handleCount: number): number => {
-        const baseWidth = 252; // Base width for nodes with 4 or fewer handles
-        const handleStep = 60; // Additional width per handle beyond 4
+        const baseWidth = ROOT_CLUSTER_WIDTH;
+        const handleStep = ROOT_CLUSTER_HANDLE_STEP;
 
         if (!handleCount || handleCount <= 4) {
             return baseWidth;
@@ -101,7 +102,6 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
     const nodeWidth = isRootClusterElement || isNestedClusterRoot ? calculateNodeWidth(clusterElementTypesCount) : 252;
 
     const getHandlePosition = (index: number, totalHandles: number = 1): string => {
-        // const nodeWidth = 252;
         const nodeEdgeBuffer = nodeWidth * 0.1;
 
         const usableNodeWidth = nodeWidth - nodeEdgeBuffer * 2;
@@ -241,7 +241,7 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                         onClick={handleNodeClick}
                         style={
                             isRootClusterElement || isNestedClusterRoot
-                                ? {width: `${nodeWidth}px`, minWidth: `${nodeWidth}px`}
+                                ? {minWidth: `${nodeWidth}px`, width: `${nodeWidth}px`}
                                 : undefined
                         }
                     >
@@ -323,6 +323,7 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                                             index,
                                             rootClusterElementDefinition?.clusterElementTypes?.length
                                         ),
+                                        transform: 'translateX(-50%)',
                                     }}
                                     type="source"
                                 />
@@ -360,6 +361,7 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                                     index,
                                     rootClusterElementDefinition.clusterElementTypes?.length
                                 ),
+                                transform: 'translateX(-50%)',
                             }}
                             type="source"
                         />

@@ -137,6 +137,7 @@ export type TaskDispatcherDataType = BranchDataType &
 export type ClusterElementItemType = {
     clusterElements?: ClusterElementsType;
     label?: string;
+    isNestedClusterRoot?: boolean;
     metadata?: {
         ui?: {
             nodePosition?: {x: number; y: number};
@@ -177,6 +178,7 @@ export type NodeDataType = {
     eachId?: string;
     eachData?: EachDataType;
     icon?: JSX.Element | ReactNode | string;
+    isNestedClusterRoot?: boolean;
     label?: string;
     loopBreakData?: LoopBreakDataType;
     loopData?: LoopDataType;

@@ -135,24 +135,9 @@ export default function processClusterElementsHierarchy({
         }
     }
 
-    const placeholdersByParent: Record<string, Record<string, {x: number; y: number}>> = {};
-
-    Object.entries(nodePositions).forEach(([nodeId, position]) => {
-        if (nodeId.includes('placeholder')) {
-            const parentId = nodeId.split('-')[0];
-
-            if (!placeholdersByParent[parentId]) {
-                placeholdersByParent[parentId] = {};
-            }
-
-            placeholdersByParent[parentId][nodeId] = position;
-        }
-    });
-
     updatedClusterElements = updateClusterElementsPositions({
         clusterElements: updatedClusterElements,
         nodePositions,
-        placeholdersByParent,
     });
 
     return {nestedClusterElements: updatedClusterElements, parentFound};

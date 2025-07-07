@@ -94,7 +94,6 @@ const useClusterElementsLayout = () => {
             clusterElements,
             clusterRootComponentDefinition: rootClusterElementDefinition,
             clusterRootId: rootClusterElementNodeData.workflowNodeName,
-            clusterRootNodeData: rootClusterElementNodeData,
             currentNodePositions: nodePositions,
             nestedClusterRootsDefinitions: nestedClusterRootsDefinitions || {},
         });

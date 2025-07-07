@@ -195,19 +195,6 @@ const WorkflowNodesPopoverMenuOperationList = ({
                 sourceNodeId,
             });
 
-            const mainRootPlaceholderPositions = Object.entries(nodePositions).reduce<
-                Record<string, {x: number; y: number}>
-            >((accumulator, [nodeId, position]) => {
-                if (
-                    nodeId.startsWith(`${rootClusterElementNodeData?.workflowNodeName}-`) &&
-                    nodeId.includes('placeholder')
-                ) {
-                    accumulator[nodeId] = position;
-                }
-
-                return accumulator;
-            }, {});
-
             const rootNodePosition = rootClusterElementNodeData?.workflowNodeName
                 ? nodePositions[rootClusterElementNodeData.workflowNodeName]
                 : undefined;
@@ -217,7 +204,6 @@ const WorkflowNodesPopoverMenuOperationList = ({
                 ui: {
                     ...mainClusterRootTask.metadata?.ui,
                     nodePosition: rootNodePosition,
-                    placeholderPositions: mainRootPlaceholderPositions || {},
                 },
             };
 

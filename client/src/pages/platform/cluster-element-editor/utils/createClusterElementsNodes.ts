@@ -1,5 +1,5 @@
 import {ComponentDefinition} from '@/shared/middleware/platform/configuration';
-import {ClusterElementItemType, ClusterElementsType, NodeDataType} from '@/shared/types';
+import {ClusterElementsType} from '@/shared/types';
 import {Node} from '@xyflow/react';
 
 import {createMultipleElementsNode, createPlaceholderNode, createSingleElementsNode} from './clusterElementsNodesUtils';
@@ -9,7 +9,6 @@ interface CreateClusterElementNodesProps {
     clusterElements: ClusterElementsType;
     clusterRootComponentDefinition: ComponentDefinition;
     clusterRootId: string;
-    clusterRootNodeData: ClusterElementItemType | NodeDataType | null;
     currentNodePositions?: Record<string, {x: number; y: number}>;
     nestedClusterRootsDefinitions: Record<string, ComponentDefinition>;
 }
@@ -18,7 +17,6 @@ export default function createClusterElementNodes({
     clusterElements,
     clusterRootComponentDefinition,
     clusterRootId,
-    clusterRootNodeData,
     currentNodePositions,
     nestedClusterRootsDefinitions,
 }: CreateClusterElementNodesProps) {
@@ -27,13 +25,13 @@ export default function createClusterElementNodes({
     }
 
     const createdNodes: Node[] = [];
+    const totalClusterElementTypeCount = clusterRootComponentDefinition.clusterElementTypes.length;
 
-    clusterRootComponentDefinition.clusterElementTypes.forEach((clusterElementType) => {
+    clusterRootComponentDefinition.clusterElementTypes.forEach((clusterElementType, clusterElementTypeIndex) => {
         const elementType = convertNameToCamelCase(clusterElementType.name || '');
         const elementLabel = clusterElementType.label || '';
         const isMultipleElementsNode = clusterElementType.multipleElements;
         const clusterElementData = clusterElements[elementType];
-        const placeholderPositions = clusterRootNodeData?.metadata?.ui?.placeholderPositions || {};
 
         if (isMultipleElementsNode) {
             if (Array.isArray(clusterElementData) && clusterElementData.length) {
@@ -63,7 +61,6 @@ export default function createClusterElementNodes({
                                 clusterElements: element.clusterElements,
                                 clusterRootComponentDefinition: nestedDefinition,
                                 clusterRootId: element.name,
-                                clusterRootNodeData: element,
                                 currentNodePositions,
                                 nestedClusterRootsDefinitions,
                             });
@@ -78,7 +75,8 @@ export default function createClusterElementNodes({
                 elementLabel,
                 elementType,
                 currentNodePositions,
-                placeholderPositions
+                clusterElementTypeIndex,
+                totalClusterElementTypeCount
             );
             createdNodes.push(placeholderNode);
         } else {
@@ -109,7 +107,6 @@ export default function createClusterElementNodes({
                             clusterElements: clusterElementData.clusterElements,
                             clusterRootComponentDefinition: nestedDefinition,
                             clusterRootId: clusterElementData.name,
-                            clusterRootNodeData: clusterElementData,
                             currentNodePositions,
                             nestedClusterRootsDefinitions,
                         });
@@ -123,7 +120,8 @@ export default function createClusterElementNodes({
                     elementLabel,
                     elementType,
                     currentNodePositions,
-                    placeholderPositions
+                    clusterElementTypeIndex,
+                    totalClusterElementTypeCount
                 );
 
                 createdNodes.push(placeholderNode);
