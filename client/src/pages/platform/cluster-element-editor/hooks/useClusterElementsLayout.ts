@@ -7,7 +7,7 @@ import {
 import {ClusterElementItemType, ClusterElementsType} from '@/shared/types';
 import {useQueryClient} from '@tanstack/react-query';
 import {Edge, Node} from '@xyflow/react';
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useShallow} from 'zustand/react/shallow';
 
 import useWorkflowDataStore from '../../workflow-editor/stores/useWorkflowDataStore';
@@ -27,16 +27,22 @@ const useClusterElementsLayout = () => {
 
     const queryClient = useQueryClient();
 
-    const rootClusterElementComponentVersion =
-        Number(rootClusterElementNodeData?.type?.split('/')[1].replace(/^v/, '')) || 1;
+    const mainClusterRootQueryParameters = useMemo(() => {
+        if (!rootClusterElementNodeData?.type) {
+            return {
+                componentName: '',
+                componentVersion: 1,
+            };
+        }
 
-    const rootClusterElementComponentName = rootClusterElementNodeData?.componentName || '';
+        return {
+            componentName: rootClusterElementNodeData?.componentName || '',
+            componentVersion: Number(rootClusterElementNodeData?.type?.split('/')[1]?.replace(/^v/, '')) || 1,
+        };
+    }, [rootClusterElementNodeData]);
 
     const {data: mainRootClusterElementDefinition} = useGetComponentDefinitionQuery(
-        {
-            componentName: rootClusterElementComponentName,
-            componentVersion: rootClusterElementComponentVersion,
-        },
+        mainClusterRootQueryParameters,
         !!rootClusterElementNodeData
     );
 
@@ -48,13 +54,17 @@ const useClusterElementsLayout = () => {
         }))
     );
 
-    const nodePositions = nodes.reduce<Record<string, {x: number; y: number}>>((accumulator, node) => {
-        accumulator[node.id] = {
-            x: node.position.x,
-            y: node.position.y,
-        };
-        return accumulator;
-    }, {});
+    const nodePositions = useMemo(
+        () =>
+            nodes.reduce<Record<string, {x: number; y: number}>>((accumulator, node) => {
+                accumulator[node.id] = {
+                    x: node.position.x,
+                    y: node.position.y,
+                };
+                return accumulator;
+            }, {}),
+        [nodes]
+    );
 
     const canvasWidth = window.innerWidth - 80;
 
@@ -110,22 +120,8 @@ const useClusterElementsLayout = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [nestedClusterRootsDefinitions, rootClusterElementNodeData, mainRootClusterElementDefinition, workflow]);
 
-    useEffect(() => {
-        if (!rootClusterElementNodeData || !mainRootClusterElementDefinition || !workflow.definition) {
-            return;
-        }
-
-        const workflowDefinitionTasks = JSON.parse(workflow.definition).tasks;
-
-        const mainClusterRootTask = workflowDefinitionTasks.find(
-            (task: {name: string}) => task.name === rootClusterElementNodeData?.workflowNodeName
-        );
-
-        const clusterElements = mainClusterRootTask.clusterElements || {};
-
-        const getClusterRoots = (
-            elements: ClusterElementsType
-        ): Array<{componentName: string; componentVersion: number}> => {
+    const getClusterRoots = useCallback(
+        (elements: ClusterElementsType): Array<{componentName: string; componentVersion: number}> => {
             return Object.values(elements).flatMap((value) => {
                 if (Array.isArray(value)) {
                     return value.flatMap((item: ClusterElementItemType) => {
@@ -155,15 +151,15 @@ const useClusterElementsLayout = () => {
 
                 return [];
             });
-        };
+        },
+        []
+    );
 
-        const clusterRoots = getClusterRoots(clusterElements);
-
-        const createDefinitionQueryParameters = (roots: Array<{componentName: string; componentVersion: number}>) => {
+    const createDefinitionQueryParameters = useCallback(
+        (roots: Array<{componentName: string; componentVersion: number}>) => {
             return roots.map((root) => ({
                 componentName: root.componentName,
                 componentVersion: root.componentVersion,
-
                 queryFn: () =>
                     new ComponentDefinitionApi().getComponentDefinition({
                         componentName: root.componentName,
@@ -174,7 +170,29 @@ const useClusterElementsLayout = () => {
                     componentVersion: root.componentVersion,
                 }),
             }));
-        };
+        },
+        []
+    );
+
+    const workflowDefinitionTasks = useMemo(() => {
+        if (!workflow.definition) {
+            return [];
+        }
+
+        return JSON.parse(workflow.definition).tasks;
+    }, [workflow.definition]);
+
+    useEffect(() => {
+        if (!rootClusterElementNodeData || !mainRootClusterElementDefinition || !workflow.definition) {
+            return;
+        }
+
+        const mainClusterRootTask = workflowDefinitionTasks.find(
+            (task: {name: string}) => task.name === rootClusterElementNodeData?.workflowNodeName
+        );
+
+        const clusterElements = mainClusterRootTask.clusterElements || {};
+        const clusterRoots = getClusterRoots(clusterElements);
 
         // MICANJE PROMISE-A JE ELIMINIRALO I ONAJ BLIP (RE-RENDER) PRI DODAVANJU NOVOG CLUSTER ELEMENTA
         const fetchAndUpdateDefinitions = async () => {
@@ -194,7 +212,15 @@ const useClusterElementsLayout = () => {
         };
 
         fetchAndUpdateDefinitions();
-    }, [rootClusterElementNodeData, mainRootClusterElementDefinition, workflow, queryClient]);
+    }, [
+        rootClusterElementNodeData,
+        mainRootClusterElementDefinition,
+        workflow,
+        queryClient,
+        getClusterRoots,
+        createDefinitionQueryParameters,
+        workflowDefinitionTasks,
+    ]);
 
     useEffect(() => {
         const layoutNodes = allNodes;
