@@ -12,7 +12,6 @@ import {useShallow} from 'zustand/react/shallow';
 
 import useWorkflowDataStore from '../../workflow-editor/stores/useWorkflowDataStore';
 import useWorkflowEditorStore from '../../workflow-editor/stores/useWorkflowEditorStore';
-import useWorkflowNodeDetailsPanelStore from '../../workflow-editor/stores/useWorkflowNodeDetailsPanelStore';
 import {getLayoutedElements} from '../../workflow-editor/utils/layoutUtils';
 import useClusterElementsDataStore from '../stores/useClusterElementsDataStore';
 import createClusterElementsEdges from '../utils/createClusterElementsEdges';
@@ -24,7 +23,6 @@ const useClusterElementsLayout = () => {
     >({});
 
     const {rootClusterElementNodeData} = useWorkflowEditorStore();
-    const {currentNode} = useWorkflowNodeDetailsPanelStore();
     const {workflow} = useWorkflowDataStore.getState();
 
     const queryClient = useQueryClient();
@@ -34,12 +32,12 @@ const useClusterElementsLayout = () => {
 
     const rootClusterElementComponentName = rootClusterElementNodeData?.componentName || '';
 
-    const {data: rootClusterElementDefinition} = useGetComponentDefinitionQuery(
+    const {data: mainRootClusterElementDefinition} = useGetComponentDefinitionQuery(
         {
             componentName: rootClusterElementComponentName,
             componentVersion: rootClusterElementComponentVersion,
         },
-        !!rootClusterElementNodeData && currentNode?.rootClusterElement
+        !!rootClusterElementNodeData
     );
 
     const {nodes, setEdges, setNodes} = useClusterElementsDataStore(
@@ -64,7 +62,7 @@ const useClusterElementsLayout = () => {
         const nodes: Array<Node> = [];
         const edges: Array<Edge> = [];
 
-        if (!rootClusterElementNodeData || !rootClusterElementDefinition || !workflow.definition) {
+        if (!rootClusterElementNodeData || !mainRootClusterElementDefinition || !workflow.definition) {
             return {allNodes: nodes, taskEdges: edges};
         }
 
@@ -90,7 +88,7 @@ const useClusterElementsLayout = () => {
 
         const childNodes = createClusterElementsNodes({
             clusterElements,
-            clusterRootComponentDefinition: rootClusterElementDefinition,
+            clusterRootComponentDefinition: mainRootClusterElementDefinition,
             clusterRootId: rootClusterElementNodeData.workflowNodeName,
             currentNodePositions: nodePositions,
             nestedClusterRootsDefinitions: nestedClusterRootsDefinitions || {},
@@ -99,7 +97,7 @@ const useClusterElementsLayout = () => {
         nodes.push(...childNodes);
 
         const childEdges = createClusterElementsEdges({
-            clusterRootComponentDefinition: rootClusterElementDefinition,
+            clusterRootComponentDefinition: mainRootClusterElementDefinition,
             clusterRootId: rootClusterElementNodeData.workflowNodeName,
             nestedClusterRootsDefinitions: nestedClusterRootsDefinitions || {},
             nodes,
@@ -110,78 +108,93 @@ const useClusterElementsLayout = () => {
         return {allNodes: nodes, taskEdges: edges};
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [nestedClusterRootsDefinitions, rootClusterElementNodeData, rootClusterElementDefinition, workflow]);
+    }, [nestedClusterRootsDefinitions, rootClusterElementNodeData, mainRootClusterElementDefinition, workflow]);
 
     useEffect(() => {
-        if (!rootClusterElementNodeData || !rootClusterElementDefinition || !workflow.definition) {
+        if (!rootClusterElementNodeData || !mainRootClusterElementDefinition || !workflow.definition) {
             return;
         }
 
         const workflowDefinitionTasks = JSON.parse(workflow.definition).tasks;
 
-        const currentClusterRootTask = workflowDefinitionTasks.find(
+        const mainClusterRootTask = workflowDefinitionTasks.find(
             (task: {name: string}) => task.name === rootClusterElementNodeData?.workflowNodeName
         );
-        const clusterElements = currentClusterRootTask.clusterElements || {};
 
-        const clusterRoots: {componentName: string; componentVersion: number}[] = [];
+        const clusterElements = mainClusterRootTask.clusterElements || {};
 
-        const findClusterRoots = (elements: ClusterElementsType) => {
-            Object.entries(elements).forEach(([, value]) => {
+        const getClusterRoots = (
+            elements: ClusterElementsType
+        ): Array<{componentName: string; componentVersion: number}> => {
+            return Object.values(elements).flatMap((value) => {
                 if (Array.isArray(value)) {
-                    (value as ClusterElementItemType[]).forEach((item) => {
+                    return value.flatMap((item: ClusterElementItemType) => {
                         if (item.clusterElements) {
-                            clusterRoots.push({
-                                componentName: item.type.split('/')[0],
-                                componentVersion: Number(item.type?.split('/')[1]?.replace(/^v/, '')) || 1,
-                            });
-
-                            findClusterRoots(item.clusterElements);
+                            return [
+                                {
+                                    componentName: item.type.split('/')[0],
+                                    componentVersion: Number(item.type?.split('/')[1]?.replace(/^v/, '')) || 1,
+                                },
+                                ...getClusterRoots(item.clusterElements),
+                            ];
                         }
+
+                        return [];
                     });
                 } else if (value && typeof value === 'object') {
-                    const typedValue = value as ClusterElementItemType;
-
-                    if (typedValue.clusterElements) {
-                        clusterRoots.push({
-                            componentName: typedValue.type.split('/')[0],
-                            componentVersion: Number(typedValue.type?.split('/')[1]?.replace(/^v/, '')) || 1,
-                        });
-
-                        findClusterRoots(typedValue.clusterElements);
+                    if (value.clusterElements) {
+                        return [
+                            {
+                                componentName: value.type.split('/')[0],
+                                componentVersion: Number(value.type?.split('/')[1]?.replace(/^v/, '')) || 1,
+                            },
+                            ...getClusterRoots(value.clusterElements),
+                        ];
                     }
                 }
+
+                return [];
             });
         };
 
-        findClusterRoots(clusterElements);
+        const clusterRoots = getClusterRoots(clusterElements);
 
-        const fetchDefinitions = async () => {
+        const createDefinitionQueryParameters = (roots: Array<{componentName: string; componentVersion: number}>) => {
+            return roots.map((root) => ({
+                componentName: root.componentName,
+                componentVersion: root.componentVersion,
+
+                queryFn: () =>
+                    new ComponentDefinitionApi().getComponentDefinition({
+                        componentName: root.componentName,
+                        componentVersion: root.componentVersion,
+                    }),
+                queryKey: ComponentDefinitionKeys.componentDefinition({
+                    componentName: root.componentName,
+                    componentVersion: root.componentVersion,
+                }),
+            }));
+        };
+
+        // MICANJE PROMISE-A JE ELIMINIRALO I ONAJ BLIP (RE-RENDER) PRI DODAVANJU NOVOG CLUSTER ELEMENTA
+        const fetchAndUpdateDefinitions = async () => {
+            const definitionQueryParameters = createDefinitionQueryParameters(clusterRoots);
             const definitions: Record<string, ComponentDefinition> = {};
 
-            await Promise.all(
-                clusterRoots.map(async (root) => {
-                    const definition = await queryClient.fetchQuery({
-                        queryFn: () =>
-                            new ComponentDefinitionApi().getComponentDefinition({
-                                componentName: root.componentName,
-                                componentVersion: root.componentVersion,
-                            }),
-                        queryKey: ComponentDefinitionKeys.componentDefinition({
-                            componentName: root.componentName,
-                            componentVersion: root.componentVersion,
-                        }),
-                    });
+            for (const query of definitionQueryParameters) {
+                const definition = await queryClient.fetchQuery({
+                    queryFn: query.queryFn,
+                    queryKey: query.queryKey,
+                });
 
-                    definitions[root.componentName] = definition;
-                })
-            );
+                definitions[query.componentName] = definition;
+            }
 
             setNestedClusterRootsDefinitions(definitions);
         };
 
-        fetchDefinitions();
-    }, [rootClusterElementNodeData, rootClusterElementDefinition, workflow, queryClient]);
+        fetchAndUpdateDefinitions();
+    }, [rootClusterElementNodeData, mainRootClusterElementDefinition, workflow, queryClient]);
 
     useEffect(() => {
         const layoutNodes = allNodes;
