@@ -9,7 +9,7 @@ interface CreateClusterElementNodesProps {
     clusterElements: ClusterElementsType;
     clusterRootComponentDefinition: ComponentDefinition;
     clusterRootId: string;
-    currentNodePositions?: Record<string, {x: number; y: number}>;
+    currentNodePositions: Record<string, {x: number; y: number}>;
     nestedClusterRootsDefinitions: Record<string, ComponentDefinition>;
 }
 
@@ -17,7 +17,7 @@ export default function createClusterElementNodes({
     clusterElements,
     clusterRootComponentDefinition,
     clusterRootId,
-    currentNodePositions,
+    currentNodePositions = {},
     nestedClusterRootsDefinitions,
 }: CreateClusterElementNodesProps) {
     if (!clusterRootComponentDefinition?.clusterElementTypes || !clusterElements) {
@@ -37,7 +37,7 @@ export default function createClusterElementNodes({
             if (Array.isArray(clusterElementData) && clusterElementData.length) {
                 clusterElementData.forEach((element, multipleElementIndex) => {
                     // Create the multiple element node
-                    const elementNode = createMultipleElementsNode(
+                    const elementNode = createMultipleElementsNode({
                         clusterElementTypeIndex,
                         clusterRootId,
                         currentNodePositions,
@@ -45,8 +45,8 @@ export default function createClusterElementNodes({
                         elementType,
                         isMultipleElementsNode,
                         multipleElementIndex,
-                        totalClusterElementTypeCount
-                    );
+                        totalClusterElementTypeCount,
+                    });
 
                     // Set root parent/child relationship
                     elementNode.data.parentClusterRootId = clusterRootId;
@@ -76,28 +76,28 @@ export default function createClusterElementNodes({
             }
 
             // Always add placeholders for multiple elements nodes
-            const placeholderNode = createPlaceholderNode(
+            const placeholderNode = createPlaceholderNode({
                 clusterElementTypeIndex,
                 clusterRootId,
                 currentNodePositions,
                 elementLabel,
                 elementType,
-                totalClusterElementTypeCount
-            );
+                totalClusterElementTypeCount,
+            });
 
             createdNodes.push(placeholderNode);
         } else {
             if (clusterElementData && !Array.isArray(clusterElementData)) {
                 // Create the single element node
-                const elementNode = createSingleElementsNode(
+                const elementNode = createSingleElementsNode({
                     clusterElementData,
                     clusterElementTypeIndex,
                     clusterRootId,
                     currentNodePositions,
                     elementLabel,
                     elementType,
-                    totalClusterElementTypeCount
-                );
+                    totalClusterElementTypeCount,
+                });
 
                 // Set root parent/child relationship
                 elementNode.data.parentClusterRootId = clusterRootId;
@@ -124,14 +124,14 @@ export default function createClusterElementNodes({
                     }
                 }
             } else {
-                const placeholderNode = createPlaceholderNode(
+                const placeholderNode = createPlaceholderNode({
                     clusterElementTypeIndex,
                     clusterRootId,
                     currentNodePositions,
                     elementLabel,
                     elementType,
-                    totalClusterElementTypeCount
-                );
+                    totalClusterElementTypeCount,
+                });
 
                 createdNodes.push(placeholderNode);
             }

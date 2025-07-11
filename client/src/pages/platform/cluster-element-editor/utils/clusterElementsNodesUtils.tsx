@@ -6,19 +6,32 @@ import InlineSVG from 'react-inlinesvg';
 
 import {calculateNodeWidth, getHandlePosition} from './clusterElementsUtils';
 
-export function createPlaceholderNode(
-    clusterElementTypeIndex: number = 0,
-    clusterRootId: string,
-    currentNodePositions: Record<string, {x: number; y: number}> = {},
-    elementLabel: string,
-    elementType: string,
-    totalClusterElementTypeCount: number = 1
-): Node {
+interface CreatePlaceholderNodeProps {
+    clusterElementTypeIndex?: number;
+    clusterRootId: string;
+    currentNodePositions?: Record<string, {x: number; y: number}>;
+    elementLabel: string;
+    elementType: string;
+    totalClusterElementTypeCount?: number;
+}
+
+export function createPlaceholderNode({
+    clusterElementTypeIndex = 0,
+    clusterRootId,
+    currentNodePositions = {},
+    elementLabel,
+    elementType,
+    totalClusterElementTypeCount = 1,
+}: CreatePlaceholderNodeProps): Node {
     const nodeId = `${clusterRootId}-${elementType}-placeholder-0`;
 
     const nodeWidth = calculateNodeWidth(totalClusterElementTypeCount);
 
-    const handleX = getHandlePosition(clusterElementTypeIndex, totalClusterElementTypeCount, nodeWidth);
+    const handleX = getHandlePosition({
+        handlesCount: totalClusterElementTypeCount,
+        index: clusterElementTypeIndex,
+        nodeWidth,
+    });
 
     const position = {
         x: handleX - PLACEHOLDER_NODE_WIDTH / 2,
@@ -38,21 +51,35 @@ export function createPlaceholderNode(
     };
 }
 
-export function createSingleElementsNode(
-    clusterElementData: ClusterElementItemType,
-    clusterElementTypeIndex: number = 0,
-    clusterRootId: string,
-    currentNodePositions: Record<string, {x: number; y: number}> = {},
-    elementLabel: string,
-    elementType: string,
-    totalClusterElementTypeCount: number = 1
-): Node {
+interface CreateSingleElementsNodeProps {
+    clusterElementData: ClusterElementItemType;
+    clusterElementTypeIndex: number;
+    clusterRootId: string;
+    currentNodePositions: Record<string, {x: number; y: number}>;
+    elementLabel: string;
+    elementType: string;
+    totalClusterElementTypeCount?: number;
+}
+
+export function createSingleElementsNode({
+    clusterElementData,
+    clusterElementTypeIndex = 0,
+    clusterRootId,
+    currentNodePositions = {},
+    elementLabel,
+    elementType,
+    totalClusterElementTypeCount = 1,
+}: CreateSingleElementsNodeProps): Node {
     const {label, metadata, name, parameters, type} = clusterElementData;
     const typeSegments = type.split('/');
 
     const nodeWidth = calculateNodeWidth(totalClusterElementTypeCount);
 
-    const handleX = getHandlePosition(clusterElementTypeIndex, totalClusterElementTypeCount, nodeWidth);
+    const handleX = getHandlePosition({
+        handlesCount: totalClusterElementTypeCount,
+        index: clusterElementTypeIndex,
+        nodeWidth,
+    });
 
     const position = {
         x: handleX - NODE_WIDTH / 2,
@@ -99,22 +126,37 @@ export function createSingleElementsNode(
     };
 }
 
-export function createMultipleElementsNode(
-    clusterElementTypeIndex: number = 0,
-    clusterRootId: string,
-    currentNodePositions: Record<string, {x: number; y: number}> = {},
-    element: ClusterElementItemType,
-    elementType: string,
-    isMultipleElementsNode: boolean,
-    multipleElementIndex: number = 0,
-    totalClusterElementTypeCount: number = 1
-) {
+interface CreateMultipleElementsNodeProps {
+    clusterElementTypeIndex: number;
+    clusterRootId: string;
+    currentNodePositions: Record<string, {x: number; y: number}>;
+    element: ClusterElementItemType;
+    elementType: string;
+    isMultipleElementsNode: boolean;
+    multipleElementIndex: number;
+    totalClusterElementTypeCount: number;
+}
+
+export function createMultipleElementsNode({
+    clusterElementTypeIndex = 0,
+    clusterRootId,
+    currentNodePositions = {},
+    element,
+    elementType,
+    isMultipleElementsNode,
+    multipleElementIndex = 0,
+    totalClusterElementTypeCount = 1,
+}: CreateMultipleElementsNodeProps): Node {
     const {label, metadata, name, parameters, type} = element;
     const typeSegments = type.split('/');
 
     const nodeWidth = calculateNodeWidth(totalClusterElementTypeCount);
 
-    const handleX = getHandlePosition(clusterElementTypeIndex, totalClusterElementTypeCount, nodeWidth);
+    const handleX = getHandlePosition({
+        handlesCount: totalClusterElementTypeCount,
+        index: clusterElementTypeIndex,
+        nodeWidth,
+    });
 
     const position = {
         x: handleX - NODE_WIDTH / 2 + multipleElementIndex * NODE_WIDTH,

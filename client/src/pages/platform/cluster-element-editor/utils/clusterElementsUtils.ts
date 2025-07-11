@@ -66,16 +66,22 @@ export function calculateNodeWidth(handleCount: number): number {
     return baseWidth + (handleCount - 4) * handleStep;
 }
 
-export function getHandlePosition(index: number, totalHandles: number, nodeWidth: number): number {
+interface GetHandlePositionProps {
+    index: number;
+    handlesCount: number;
+    nodeWidth: number;
+}
+
+export function getHandlePosition({handlesCount, index, nodeWidth}: GetHandlePositionProps): number {
     const nodeEdgeBuffer = nodeWidth * 0.1;
 
     const usableNodeWidth = nodeWidth - nodeEdgeBuffer * 2;
 
-    if (totalHandles === 1) {
+    if (handlesCount === 1) {
         return nodeWidth / 2;
     }
 
-    const stepWidth = usableNodeWidth / (totalHandles - 1);
+    const stepWidth = usableNodeWidth / (handlesCount - 1);
 
     const handlePosition = nodeEdgeBuffer + stepWidth * index;
 

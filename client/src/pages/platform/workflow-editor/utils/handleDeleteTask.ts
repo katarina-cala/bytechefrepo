@@ -177,11 +177,11 @@ export default function handleDeleteTask({
             return;
         }
 
-        const deleteResult = deleteClusterElement(
-            rootClusterElementTask.clusterElements,
-            data.name,
-            data.clusterElementType
-        );
+        const deleteResult = deleteClusterElement({
+            clickedElementName: data.name,
+            clickedElementType: data.clusterElementType,
+            clusterElements: rootClusterElementTask.clusterElements,
+        });
 
         const updatedRootClusterElementTask = {
             ...rootClusterElementTask,

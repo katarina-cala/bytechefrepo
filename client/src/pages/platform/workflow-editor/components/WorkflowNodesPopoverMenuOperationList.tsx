@@ -148,12 +148,17 @@ const WorkflowNodesPopoverMenuOperationList = ({
     );
 
     const saveClusterElementToWorkflow = useCallback(
-        (
-            clusterElementData: ClusterElementItemType,
-            clusterElementType: string,
-            isMultipleElements: boolean,
-            sourceNodeId: string
-        ) => {
+        ({
+            clusterElementData,
+            clusterElementType,
+            isMultipleElements,
+            sourceNodeId,
+        }: {
+            clusterElementData: ClusterElementItemType;
+            clusterElementType: string;
+            isMultipleElements: boolean;
+            sourceNodeId: string;
+        }) => {
             if (!workflow.definition || !rootClusterElementDefinition) {
                 return;
             }
@@ -293,11 +298,11 @@ const WorkflowNodesPopoverMenuOperationList = ({
 
                 const sourceNode = clusterElementNodes.find((node) => node.id === sourceNodeId);
 
-                const isClusterRoot = !!sourceNode?.data?.clusterElements;
+                const isParentClusterRoot = !!sourceNode?.data?.clusterElements;
 
                 let parentDefinition: ComponentDefinition | undefined;
 
-                if (isClusterRoot) {
+                if (isParentClusterRoot) {
                     const clusterRootComponentName =
                         sourceNode?.data.componentName || (sourceNode?.data.type as string)?.split('/')[0];
                     const clusterRootComponentVersion =
@@ -361,7 +366,12 @@ const WorkflowNodesPopoverMenuOperationList = ({
                     type: `${componentName}/v${version}/${operationName}`,
                 };
 
-                saveClusterElementToWorkflow(clusterElementData, clusterElementType, isMultipleElements, sourceNodeId);
+                saveClusterElementToWorkflow({
+                    clusterElementData,
+                    clusterElementType,
+                    isMultipleElements,
+                    sourceNodeId,
+                });
 
                 setPopoverOpen(false);
 

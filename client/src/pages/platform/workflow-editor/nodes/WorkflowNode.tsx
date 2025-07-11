@@ -88,7 +88,7 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
     const isClusterElement = !!data.clusterElementType;
     const isNestedClusterRoot = !!data.isNestedClusterRoot;
     const parentClusterRootId = data.parentClusterRootId || id.split('-')[0];
-    const clusterElementTypesCount = rootClusterElementDefinition?.clusterElementTypes?.length || 0;
+    const clusterElementTypesCount = rootClusterElementDefinition?.clusterElementTypes?.length || 1;
 
     const nodeWidth =
         isRootClusterElement || isNestedClusterRoot ? calculateNodeWidth(clusterElementTypesCount) : NODE_WIDTH;
@@ -296,11 +296,11 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                                     key={`${convertNameToCamelCase(clusterElementType.name as string)}-handle`}
                                     position={Position.Bottom}
                                     style={{
-                                        left: `${getHandlePosition(
+                                        left: `${getHandlePosition({
+                                            handlesCount: clusterElementTypesCount,
                                             index,
-                                            rootClusterElementDefinition?.clusterElementTypes?.length || 1,
-                                            nodeWidth
-                                        )}px`,
+                                            nodeWidth,
+                                        })}px`,
                                         transform: 'translateX(-50%)',
                                     }}
                                     type="source"
@@ -335,11 +335,11 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                             key={`${convertNameToCamelCase(clusterElementType.name as string)}-handle`}
                             position={Position.Bottom}
                             style={{
-                                left: `${getHandlePosition(
+                                left: `${getHandlePosition({
+                                    handlesCount: clusterElementTypesCount,
                                     index,
-                                    rootClusterElementDefinition.clusterElementTypes?.length || 1,
-                                    nodeWidth
-                                )}px`,
+                                    nodeWidth,
+                                })}px`,
                                 transform: 'translateX(-50%)',
                             }}
                             type="source"

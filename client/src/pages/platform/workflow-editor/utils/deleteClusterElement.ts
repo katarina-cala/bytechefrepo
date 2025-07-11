@@ -1,10 +1,16 @@
 import {ClusterElementsType} from '@/shared/types';
 
-export default function deleteClusterElement(
-    clusterElements: ClusterElementsType,
-    clickedElementName: string,
-    clickedElementType?: string
-) {
+interface DeleteClusterElementProps {
+    clickedElementName: string;
+    clickedElementType?: string;
+    clusterElements: ClusterElementsType;
+}
+
+export default function deleteClusterElement({
+    clickedElementName,
+    clickedElementType,
+    clusterElements,
+}: DeleteClusterElementProps) {
     const result = {elementFound: false, elements: {...clusterElements}};
 
     Object.entries(result.elements).forEach(([elementType, elementValue]) => {
@@ -33,11 +39,11 @@ export default function deleteClusterElement(
                     return element;
                 }
 
-                const nestedResult = deleteClusterElement(
-                    element.clusterElements,
+                const nestedResult = deleteClusterElement({
                     clickedElementName,
-                    clickedElementType
-                );
+                    clickedElementType,
+                    clusterElements: element.clusterElements,
+                });
 
                 if (nestedResult.elementFound) {
                     result.elementFound = true;
@@ -65,11 +71,11 @@ export default function deleteClusterElement(
 
             // Process deletion of nested single elements
             if (!result.elementFound && elementValue.clusterElements) {
-                const nestedResult = deleteClusterElement(
-                    elementValue.clusterElements,
+                const nestedResult = deleteClusterElement({
                     clickedElementName,
-                    clickedElementType
-                );
+                    clickedElementType,
+                    clusterElements: elementValue.clusterElements,
+                });
 
                 if (nestedResult.elementFound) {
                     result.elementFound = true;
