@@ -25,6 +25,7 @@ interface WorkflowNodesPopoverMenuProps extends PropsWithChildren {
     hideClusterElementComponents?: boolean;
     hideTriggerComponents?: boolean;
     hideTaskDispatchers?: boolean;
+    multipleClusterElementsNode?: boolean;
     nodeIndex?: number;
     sourceNodeId: string;
 }
@@ -37,6 +38,7 @@ const WorkflowNodesPopoverMenu = ({
     hideClusterElementComponents = false,
     hideTaskDispatchers = false,
     hideTriggerComponents = false,
+    multipleClusterElementsNode = false,
     nodeIndex,
     sourceNodeId,
 }: WorkflowNodesPopoverMenuProps) => {
@@ -201,6 +203,7 @@ const WorkflowNodesPopoverMenu = ({
                             componentDefinition={componentDefinitionToBeAdded}
                             edgeId={edgeId}
                             invalidateWorkflowQueries={invalidateWorkflowQueries!}
+                            multipleClusterElementsNode={multipleClusterElementsNode}
                             rootClusterElementDefinition={rootClusterElementDefinition}
                             setPopoverOpen={setPopoverOpen}
                             sourceNodeId={sourceNodeId}

@@ -37,7 +37,7 @@ export default function createClusterElementNodes({
             if (Array.isArray(clusterElementData) && clusterElementData.length) {
                 clusterElementData.forEach((element, multipleElementIndex) => {
                     // Create the multiple element node
-                    const elementNode = createMultipleElementsNode({
+                    const multipleElementsNode = createMultipleElementsNode({
                         clusterElementTypeIndex,
                         clusterRootId,
                         currentNodePositions,
@@ -49,27 +49,27 @@ export default function createClusterElementNodes({
                     });
 
                     // Set root parent/child relationship
-                    elementNode.data.parentClusterRootId = clusterRootId;
-                    elementNode.data.isNestedClusterRoot = !!element.clusterElements;
+                    multipleElementsNode.data.parentClusterRootId = clusterRootId;
+                    multipleElementsNode.data.isNestedClusterRoot = !!element.clusterElements;
 
-                    createdNodes.push(elementNode);
+                    createdNodes.push(multipleElementsNode);
 
                     // Process nested roots
                     if (element.clusterElements) {
                         const componentName = element.type?.split('/')[0];
 
-                        const nestedDefinition = nestedClusterRootsDefinitions[componentName];
+                        const nestedClusterRootDefinition = nestedClusterRootsDefinitions[componentName];
 
-                        if (nestedDefinition) {
-                            const childNodes = createClusterElementNodes({
+                        if (nestedClusterRootDefinition) {
+                            const nestedClusterElementNodes = createClusterElementNodes({
                                 clusterElements: element.clusterElements,
-                                clusterRootComponentDefinition: nestedDefinition,
+                                clusterRootComponentDefinition: nestedClusterRootDefinition,
                                 clusterRootId: element.name,
                                 currentNodePositions,
                                 nestedClusterRootsDefinitions,
                             });
 
-                            createdNodes.push(...childNodes);
+                            createdNodes.push(...nestedClusterElementNodes);
                         }
                     }
                 });
@@ -82,6 +82,7 @@ export default function createClusterElementNodes({
                 currentNodePositions,
                 elementLabel,
                 elementType,
+                isMultipleElementsNode,
                 totalClusterElementTypeCount,
             });
 
@@ -89,7 +90,7 @@ export default function createClusterElementNodes({
         } else {
             if (clusterElementData && !Array.isArray(clusterElementData)) {
                 // Create the single element node
-                const elementNode = createSingleElementsNode({
+                const singleElementNode = createSingleElementsNode({
                     clusterElementData,
                     clusterElementTypeIndex,
                     clusterRootId,
@@ -100,27 +101,27 @@ export default function createClusterElementNodes({
                 });
 
                 // Set root parent/child relationship
-                elementNode.data.parentClusterRootId = clusterRootId;
-                elementNode.data.isNestedClusterRoot = !!clusterElementData.clusterElements;
+                singleElementNode.data.parentClusterRootId = clusterRootId;
+                singleElementNode.data.isNestedClusterRoot = !!clusterElementData.clusterElements;
 
-                createdNodes.push(elementNode);
+                createdNodes.push(singleElementNode);
 
                 // Process nested roots
                 if (clusterElementData.clusterElements) {
                     const componentName = clusterElementData.type?.split('/')[0];
 
-                    const nestedDefinition = nestedClusterRootsDefinitions[componentName];
+                    const nestedClusterRootDefinition = nestedClusterRootsDefinitions[componentName];
 
-                    if (nestedDefinition) {
-                        const childNodes = createClusterElementNodes({
+                    if (nestedClusterRootDefinition) {
+                        const nestedClusterElementNodes = createClusterElementNodes({
                             clusterElements: clusterElementData.clusterElements,
-                            clusterRootComponentDefinition: nestedDefinition,
+                            clusterRootComponentDefinition: nestedClusterRootDefinition,
                             clusterRootId: clusterElementData.name,
                             currentNodePositions,
                             nestedClusterRootsDefinitions,
                         });
 
-                        createdNodes.push(...childNodes);
+                        createdNodes.push(...nestedClusterElementNodes);
                     }
                 }
             } else {

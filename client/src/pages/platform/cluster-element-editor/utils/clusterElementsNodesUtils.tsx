@@ -12,6 +12,7 @@ interface CreatePlaceholderNodeProps {
     currentNodePositions?: Record<string, {x: number; y: number}>;
     elementLabel: string;
     elementType: string;
+    isMultipleElementsNode?: boolean;
     totalClusterElementTypeCount?: number;
 }
 
@@ -21,6 +22,7 @@ export function createPlaceholderNode({
     currentNodePositions = {},
     elementLabel,
     elementType,
+    isMultipleElementsNode = false,
     totalClusterElementTypeCount = 1,
 }: CreatePlaceholderNodeProps): Node {
     const nodeId = `${clusterRootId}-${elementType}-placeholder-0`;
@@ -43,6 +45,7 @@ export function createPlaceholderNode({
             clusterElementLabel: elementLabel,
             clusterElementType: elementType,
             label: '+',
+            multipleClusterElementsNode: isMultipleElementsNode,
         },
         id: nodeId,
         parentId: clusterRootId,
