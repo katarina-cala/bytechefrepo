@@ -80,8 +80,10 @@ export default function processClusterElementsHierarchy({
 
                         return;
                     }
+
                     // Process nested cluster elements
                     if (element.clusterElements) {
+                        //TODO: "updatedNestedClusterElements"?
                         const result = processClusterElementsHierarchy({
                             clusterElementData,
                             clusterElements: element.clusterElements,
@@ -100,8 +102,10 @@ export default function processClusterElementsHierarchy({
                         }
                     }
                 });
+                // } else if (value && !Object.keys(value).length) {
+                //TODO: provjerit je li ova gornja provjera tocna (Object.keys...) => ako se stavi Oject.keys onda mi nested cluster rootovi koji su djeca multipe element tipa ne rade kako triba aiAgent => ModularRag => QueryTransformer => compressionQueryTransformer (taj zadnji se nece prikazat)
+                // // Check if this is the correct root
             } else if (value && typeof value === 'object') {
-                // Check if this is the correct root
                 if (value.name === sourceNodeId) {
                     if (!value.clusterElements) {
                         value.clusterElements = {};

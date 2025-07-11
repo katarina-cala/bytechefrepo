@@ -17,8 +17,10 @@ export default function getFormattedName(itemName: string): string {
 
         const {clusterElements} = task;
 
-        const extractElementNames = (elements: ClusterElementsType, names: string[]) => {
-            if (!elements) return;
+        const getClusterElementNames = (elements: ClusterElementsType, names: string[]) => {
+            if (!elements) {
+                return;
+            }
 
             Object.keys(elements).forEach((elementType) => {
                 const typeElements = elements[elementType];
@@ -30,7 +32,7 @@ export default function getFormattedName(itemName: string): string {
                         }
 
                         if (element.clusterElements) {
-                            extractElementNames(element.clusterElements, names);
+                            getClusterElementNames(element.clusterElements, names);
                         }
                     });
                 } else if (typeElements && typeof typeElements === 'object') {
@@ -39,14 +41,14 @@ export default function getFormattedName(itemName: string): string {
                     }
 
                     if (typeElements.clusterElements) {
-                        extractElementNames(typeElements.clusterElements, names);
+                        getClusterElementNames(typeElements.clusterElements, names);
                     }
                 }
             });
         };
 
         if (clusterElements) {
-            extractElementNames(clusterElements, elementNames);
+            getClusterElementNames(clusterElements, elementNames);
         }
 
         return elementNames;

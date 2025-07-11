@@ -120,9 +120,9 @@ const useClusterElementsLayout = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [nestedClusterRootsDefinitions, rootClusterElementNodeData, mainRootClusterElementDefinition, workflow]);
 
-    const getClusterRoots = useCallback(
-        (elements: ClusterElementsType): Array<{componentName: string; componentVersion: number}> => {
-            return Object.values(elements).flatMap((value) => {
+    const getClusterRootQueryParameters = useCallback(
+        (elements: ClusterElementsType): Array<{componentName: string; componentVersion: number}> =>
+            Object.values(elements).flatMap((value) => {
                 if (Array.isArray(value)) {
                     return value.flatMap((item: ClusterElementItemType) => {
                         if (item.clusterElements) {
@@ -131,33 +131,33 @@ const useClusterElementsLayout = () => {
                                     componentName: item.type.split('/')[0],
                                     componentVersion: Number(item.type?.split('/')[1]?.replace(/^v/, '')) || 1,
                                 },
-                                ...getClusterRoots(item.clusterElements),
+                                ...getClusterRootQueryParameters(item.clusterElements),
                             ];
                         }
 
                         return [];
                     });
                 } else if (value && typeof value === 'object') {
+                    //TODO: prominit provjeru za objekt
                     if (value.clusterElements) {
                         return [
                             {
                                 componentName: value.type.split('/')[0],
                                 componentVersion: Number(value.type?.split('/')[1]?.replace(/^v/, '')) || 1,
                             },
-                            ...getClusterRoots(value.clusterElements),
+                            ...getClusterRootQueryParameters(value.clusterElements),
                         ];
                     }
                 }
 
                 return [];
-            });
-        },
+            }),
         []
     );
 
-    const createDefinitionQueryParameters = useCallback(
-        (roots: Array<{componentName: string; componentVersion: number}>) => {
-            return roots.map((root) => ({
+    const getClusterRootDefinitionQuery = useCallback(
+        (roots: Array<{componentName: string; componentVersion: number}>) =>
+            roots.map((root) => ({
                 componentName: root.componentName,
                 componentVersion: root.componentVersion,
                 queryFn: () =>
@@ -169,8 +169,7 @@ const useClusterElementsLayout = () => {
                     componentName: root.componentName,
                     componentVersion: root.componentVersion,
                 }),
-            }));
-        },
+            })),
         []
     );
 
@@ -192,14 +191,14 @@ const useClusterElementsLayout = () => {
         );
 
         const clusterElements = mainClusterRootTask.clusterElements || {};
-        const clusterRoots = getClusterRoots(clusterElements);
+        const clusterRoots = getClusterRootQueryParameters(clusterElements);
 
         // MICANJE PROMISE-A JE ELIMINIRALO I ONAJ BLIP (RE-RENDER) PRI DODAVANJU NOVOG CLUSTER ELEMENTA
         const fetchAndUpdateDefinitions = async () => {
-            const definitionQueryParameters = createDefinitionQueryParameters(clusterRoots);
+            const clusterRootDefinitionQuery = getClusterRootDefinitionQuery(clusterRoots);
             const definitions: Record<string, ComponentDefinition> = {};
 
-            for (const query of definitionQueryParameters) {
+            for (const query of clusterRootDefinitionQuery) {
                 const definition = await queryClient.fetchQuery({
                     queryFn: query.queryFn,
                     queryKey: query.queryKey,
@@ -217,8 +216,8 @@ const useClusterElementsLayout = () => {
         mainRootClusterElementDefinition,
         workflow,
         queryClient,
-        getClusterRoots,
-        createDefinitionQueryParameters,
+        getClusterRootQueryParameters,
+        getClusterRootDefinitionQuery,
         workflowDefinitionTasks,
     ]);
 
