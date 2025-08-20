@@ -259,7 +259,8 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                                 !isMainRootClusterElement &&
                                 'border-blue-300 bg-blue-100 shadow-none',
                             isMainRootClusterElement && 'nodrag',
-                            (isMainRootClusterElement || isNestedClusterRoot) && `min-w-[${ROOT_CLUSTER_WIDTH}px]`
+                            (isMainRootClusterElement || isNestedClusterRoot) && `min-w-[${ROOT_CLUSTER_WIDTH}px] `,
+                            isClusterElement && !isMainRootClusterElement && 'rounded-full'
                         )}
                         onClick={() => handleNodeClick()}
                         style={
