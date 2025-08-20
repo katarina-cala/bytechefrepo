@@ -1,4 +1,4 @@
-import {DEFAULT_NODE_POSITION, NODE_HEIGHT, NODE_WIDTH, PLACEHOLDER_NODE_WIDTH} from '@/shared/constants';
+import {CLUSTER_ELEMENT_PLACEHOLDER_WIDTH, DEFAULT_NODE_POSITION, NODE_HEIGHT, NODE_WIDTH} from '@/shared/constants';
 import {ClusterElementItemType} from '@/shared/types';
 import {Node} from '@xyflow/react';
 import {ComponentIcon} from 'lucide-react';
@@ -36,7 +36,7 @@ export function createPlaceholderNode({
     });
 
     const position = {
-        x: handleX - PLACEHOLDER_NODE_WIDTH / 2,
+        x: handleX - CLUSTER_ELEMENT_PLACEHOLDER_WIDTH / 2,
         y: 160,
     };
 
