@@ -10,7 +10,7 @@ import {NodeDataType} from '@/shared/types';
 import {HoverCard, HoverCardPortal} from '@radix-ui/react-hover-card';
 import {useQueryClient} from '@tanstack/react-query';
 import {Handle, Position} from '@xyflow/react';
-import {ArrowLeftRightIcon, ComponentIcon, TrashIcon} from 'lucide-react';
+import {ArrowLeftRightIcon, ComponentIcon, PinOff, TrashIcon} from 'lucide-react';
 import {memo, useMemo, useState} from 'react';
 import sanitize from 'sanitize-html';
 import {twMerge} from 'tailwind-merge';
@@ -26,8 +26,9 @@ import useNodeClickHandler from '../hooks/useNodeClick';
 import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 import useWorkflowEditorStore from '../stores/useWorkflowEditorStore';
 import useWorkflowNodeDetailsPanelStore from '../stores/useWorkflowNodeDetailsPanelStore';
+import {findAndRemoveSavedClusterElementPosition} from '../utils/findAndRemoveSavedClusterElementPosition';
 import handleDeleteTask from '../utils/handleDeleteTask';
-import saveClusterElementNodesPosition from '../utils/saveClusterElementNodesPosition';
+import saveWorkflowDefinition from '../utils/saveWorkflowDefinition';
 import styles from './NodeTypes.module.css';
 
 const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
@@ -61,14 +62,6 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
     const nodeClickHandler = useNodeClickHandler(data, id);
 
     const handleNodeClick = () => {
-        if (clusterElementsCanvasOpen) {
-            saveClusterElementNodesPosition({
-                invalidateWorkflowQueries,
-                updateWorkflowMutation,
-                workflow,
-            });
-        }
-
         nodeClickHandler();
     };
 
@@ -162,6 +155,17 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
         }
     };
 
+    const handleRemoveSavedClusterElementPosition = (clickedNodeName: string) => {
+        findAndRemoveSavedClusterElementPosition({
+            clickedNodeName,
+            invalidateWorkflowQueries,
+            rootClusterElementNodeData,
+            setRootClusterElementNodeData,
+            updateWorkflowMutation,
+            workflow,
+        });
+    };
+
     const nodeDescription =
         workflowNodeDescription?.description && !data.clusterElementType
             ? workflowNodeDescription.description
@@ -209,34 +213,52 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
             )}
 
             {isClusterElement && (
-                <div className="invisible absolute left-workflow-node-popover-hover top-0 flex flex-col gap-1 pr-4 group-hover:visible">
-                    {!data.multipleClusterElementsNode && currentNode && (
-                        <WorkflowNodesPopoverMenu
-                            clusterElementType={data.clusterElementType}
-                            hideActionComponents={!!data.clusterElementType}
-                            hideClusterElementComponents={!data.clusterElementType}
-                            hideTaskDispatchers={!!data.clusterElementType}
-                            hideTriggerComponents
-                            sourceNodeId={data.clusterElementType ? parentClusterRootId : id}
-                        >
-                            <Button
-                                className="bg-white p-2 shadow-md hover:text-blue-500 hover:shadow-sm"
-                                title={`Change ${data.clusterElementType} component`}
-                                variant="outline"
-                            >
-                                <ArrowLeftRightIcon className="size-4" />
-                            </Button>
-                        </WorkflowNodesPopoverMenu>
+                <div
+                    className={twMerge(
+                        'invisible absolute left-[-40px] z-50 flex gap-1 pr-4 group-hover:visible',
+                        (data.metadata?.ui?.nodePosition || !data.multipleClusterElementsNode) && '-left-[80px]'
                     )}
-
+                >
                     <Button
-                        className="bg-white p-2 shadow-md hover:text-red-500 hover:shadow-sm"
+                        className="self-center bg-white p-2 shadow-md hover:text-red-500 hover:shadow-sm"
                         onClick={() => handleDeleteNodeClick(data)}
                         title="Delete a node"
                         variant="outline"
                     >
                         <TrashIcon className="size-4" />
                     </Button>
+
+                    <div className="mr-16 flex flex-col gap-1">
+                        {!data.multipleClusterElementsNode && currentNode && (
+                            <WorkflowNodesPopoverMenu
+                                clusterElementType={data.clusterElementType}
+                                hideActionComponents={!!data.clusterElementType}
+                                hideClusterElementComponents={!data.clusterElementType}
+                                hideTaskDispatchers={!!data.clusterElementType}
+                                hideTriggerComponents
+                                sourceNodeId={data.clusterElementType ? parentClusterRootId : id}
+                            >
+                                <Button
+                                    className="bg-white p-2 shadow-md hover:text-blue-500 hover:shadow-sm"
+                                    title={`Change ${data.clusterElementType} component`}
+                                    variant="outline"
+                                >
+                                    <ArrowLeftRightIcon className="size-4" />
+                                </Button>
+                            </WorkflowNodesPopoverMenu>
+                        )}
+
+                        {data.metadata?.ui?.nodePosition && (
+                            <Button
+                                className="bg-white p-2 shadow-md hover:text-blue-500 hover:shadow-sm"
+                                onClick={() => handleRemoveSavedClusterElementPosition(data.workflowNodeName)}
+                                title="Remove saved node position"
+                                variant="outline"
+                            >
+                                <PinOff className="size-4" />
+                            </Button>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -260,7 +282,8 @@ const WorkflowNode = ({data, id}: {data: NodeDataType; id: string}) => {
                                 'border-blue-300 bg-blue-100 shadow-none',
                             isMainRootClusterElement && 'nodrag',
                             (isMainRootClusterElement || isNestedClusterRoot) && `min-w-[${ROOT_CLUSTER_WIDTH}px] `,
-                            isClusterElement && !isMainRootClusterElement && 'rounded-full'
+                            isClusterElement && !isMainRootClusterElement && 'rounded-full',
+                            isClusterElement && !data.metadata?.ui?.nodePosition && 'border-dashed'
                         )}
                         onClick={() => handleNodeClick()}
                         style={

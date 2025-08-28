@@ -137,6 +137,7 @@ export type TaskDispatcherDataType = BranchDataType &
 
 export type ClusterElementItemType = {
     clusterElements?: ClusterElementsType;
+    clusterElementTypesCount?: number;
     label?: string;
     isNestedClusterRoot?: boolean;
     metadata?: {
