@@ -2,9 +2,13 @@ import {Skeleton} from '@/components/ui/skeleton';
 import useWorkflowDataStore from '@/pages/platform/workflow-editor/stores/useWorkflowDataStore';
 import useWorkflowNodeDetailsPanelStore from '@/pages/platform/workflow-editor/stores/useWorkflowNodeDetailsPanelStore';
 import {Property as PropertyModel} from '@/shared/middleware/platform/configuration';
-import {useGetWorkflowNodeDynamicPropertiesQuery} from '@/shared/queries/platform/workflowNodeDynamicProperties.queries';
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {
+    useGetClusterElementDynamicPropertiesQuery,
+    useGetWorkflowNodeDynamicPropertiesQuery,
+} from '@/shared/queries/platform/workflowNodeDynamicProperties.queries';
+import {useEffect, useMemo, useState} from 'react';
 
+import useWorkflowEditorStore from '../../../stores/useWorkflowEditorStore';
 import getFormattedDependencyKey from '../../../utils/getFormattedDependencyKey';
 import Property from '../Property';
 
@@ -33,6 +37,7 @@ const PropertyDynamicProperties = ({
 
     const {workflow} = useWorkflowDataStore();
     const {currentNode} = useWorkflowNodeDetailsPanelStore();
+    const {rootClusterElementNodeData} = useWorkflowEditorStore();
 
     const lookupDependsOnValuesKey = getFormattedDependencyKey(lookupDependsOnValues);
 
@@ -48,6 +53,27 @@ const PropertyDynamicProperties = ({
         [lookupDependsOnValuesKey, workflow.id, name, currentNode?.name]
     );
 
+    const clusterElementQueryOptions = useMemo(
+        () => ({
+            lookupDependsOnValuesKey,
+            request: {
+                clusterElementType: currentNode?.clusterElementType ?? '',
+                clusterElementWorkflowNodeName: currentNode?.workflowNodeName ?? '',
+                id: workflow.id!,
+                propertyName: name!,
+                workflowNodeName: rootClusterElementNodeData?.workflowNodeName || '',
+            },
+        }),
+        [
+            lookupDependsOnValuesKey,
+            currentNode?.clusterElementType,
+            currentNode?.workflowNodeName,
+            workflow.id,
+            name,
+            rootClusterElementNodeData?.workflowNodeName,
+        ]
+    );
+
     const queryEnabled = useMemo(
         () =>
             (lookupDependsOnPaths?.length
@@ -56,7 +82,16 @@ const PropertyDynamicProperties = ({
         [lookupDependsOnPaths?.length, lookupDependsOnValues, enabled]
     );
 
-    const {data: properties, isLoading} = useGetWorkflowNodeDynamicPropertiesQuery(queryOptions, Boolean(queryEnabled));
+    const {data: properties, isLoading} = useGetWorkflowNodeDynamicPropertiesQuery(
+        queryOptions,
+        Boolean(queryEnabled && !currentNode?.clusterElementType)
+    );
+
+    const {data: clusterElementProperties, isLoading: isClusterElementPropertiesLoading} =
+        useGetClusterElementDynamicPropertiesQuery(
+            clusterElementQueryOptions,
+            Boolean(queryEnabled && currentNode?.clusterElementType)
+        );
 
     // Update subProperties and track which key generated these properties
     useEffect(() => {
@@ -64,14 +99,18 @@ const PropertyDynamicProperties = ({
             setSubProperties(properties);
 
             setLastProcessedKey(lookupDependsOnValuesKey);
+        } else if (clusterElementProperties) {
+            setSubProperties(clusterElementProperties);
+
+            setLastProcessedKey(lookupDependsOnValuesKey);
         } else {
             setSubProperties([]);
         }
-    }, [properties, lookupDependsOnValuesKey]);
+    }, [properties, lookupDependsOnValuesKey, clusterElementProperties]);
 
     const isPending = lookupDependsOnValuesKey !== lastProcessedKey;
 
-    if ((isLoading || isPending) && queryEnabled) {
+    if ((isLoading || isClusterElementPropertiesLoading || isPending) && queryEnabled) {
         return (
             <ul className="flex flex-col gap-4">
                 {Array.from({length: 3}).map((_, index) => (

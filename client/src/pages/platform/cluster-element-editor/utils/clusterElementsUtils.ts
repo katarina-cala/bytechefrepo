@@ -165,6 +165,60 @@ export function extractClusterElementComponentOperations(
     }, existingClusterElementsOperations);
 }
 
+export function findClusterElementByName(
+    clusterElements: ClusterElementsType,
+    elementName: string
+): ClusterElementItemType | undefined {
+    if (!clusterElements) {
+        return undefined;
+    }
+
+    const values = Object.values(clusterElements);
+    let matchingElement: ClusterElementItemType | undefined;
+
+    values.forEach((value) => {
+        if (matchingElement) {
+            return;
+        }
+
+        if (Array.isArray(value)) {
+            value.forEach((element) => {
+                if (matchingElement) {
+                    return;
+                }
+
+                if (element.name === elementName) {
+                    matchingElement = element;
+                    return;
+                }
+
+                if (element.clusterElements) {
+                    const elementFound = findClusterElementByName(element.clusterElements, elementName);
+
+                    if (elementFound) {
+                        matchingElement = elementFound;
+                    }
+                }
+            });
+        } else if (isPlainObject(value)) {
+            if (value.name === elementName) {
+                matchingElement = value as ClusterElementItemType;
+                return;
+            }
+
+            if (value.clusterElements) {
+                const elementFound = findClusterElementByName(value.clusterElements, elementName);
+
+                if (elementFound) {
+                    matchingElement = elementFound;
+                }
+            }
+        }
+    });
+
+    return matchingElement;
+}
+
 interface GetClusterElementTypesCountProps {
     clusterRootComponentDefinition: ComponentDefinition;
     operationName?: string;

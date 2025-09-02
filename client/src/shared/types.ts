@@ -56,7 +56,7 @@ export type ComponentPropertiesType =
 export type ComponentType = {
     componentName: string;
     connections?: Array<ComponentConnection>;
-    connectionId?: number;
+    connectionId?: number | number[];
     description?: string;
     displayConditions?: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -179,7 +179,7 @@ export type NodeDataType = {
     connection?: ConnectionDefinitionBasic;
     connections?: Array<ComponentConnection>;
     conditionId?: string;
-    connectionId?: number;
+    connectionId?: number | number[];
     description?: string;
     displayConditions?: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
