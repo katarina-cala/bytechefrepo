@@ -47,11 +47,17 @@ module.exports = {
                     brand: {
                         primary: 'hsl(var(--content-brand-primary))',
                     },
-                    destructive: 'hsl(var(--content-destructive))',
+                    destructive: {
+                        DEFAULT: 'hsl(var(--content-destructive))',
+                        primary: 'hsl(var(--content-destructive-primary))',
+                    },
                     neutral: {
                         primary: 'hsl(var(--content-neutral-primary))',
                         secondary: 'hsl(var(--content-neutral-secondary))',
                         tertiary: 'hsl(var(--content-neutral-tertiary))',
+                    },
+                    onsurface: {
+                        primary: 'hsl(var(--content-onsurface-primary))',
                     },
                     success: 'hsl(var(--content-success))',
                     warning: 'hsl(var(--content-warning))',
@@ -97,6 +103,9 @@ module.exports = {
                         secondary: 'hsl(var(--stroke-neutral-secondary))',
                         tertiary: 'hsl(var(--stroke-neutral-tertiary))',
                     },
+                    onsurface: {
+                        primary: 'hsl(var(--stroke-onsurface-primary))',
+                    },
                 },
                 success: {
                     DEFAULT: 'hsl(var(--success))',
@@ -115,9 +124,12 @@ module.exports = {
                         'primary-active': 'hsl(var(--surface-destructive-primary-active))',
                         'primary-hover': 'hsl(var(--surface-destructive-primary-hover))',
                         secondary: 'hsl(var(--surface-destructive-secondary))',
+                        'secondary-active': 'hsl(var(--surface-destructive-secondary-active))',
+                        'secondary-hover': 'hsl(var(--surface-destructive-secondary-hover))',
                     },
                     main: 'hsl(var(--surface-main))',
                     neutral: {
+                        primary: 'hsl(var(--surface-neutral-primary))',
                         'primary-hover': 'hsl(var(--surface-neutral-primary-hover))',
                         secondary: 'hsl(var(--surface-neutral-secondary))',
                         'secondary-hover': 'hsl(var(--surface-neutral-secondary-hover))',
