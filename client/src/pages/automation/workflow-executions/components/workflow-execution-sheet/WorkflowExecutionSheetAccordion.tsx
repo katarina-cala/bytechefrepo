@@ -1,85 +1,78 @@
 import {Accordion} from '@/components/ui/accordion';
-import WorkflowExecutionContent from '@/shared/components/workflow-executions/WorkflowExecutionContent';
-import WorkflowTaskExecutionItem from '@/shared/components/workflow-executions/WorkflowTaskExecutionItem';
-import WorkflowTriggerExecutionItem from '@/shared/components/workflow-executions/WorkflowTriggerExecutionItem';
-import {Job, TriggerExecution} from '@/shared/middleware/automation/workflow/execution';
-import {AccordionContent, AccordionItem, AccordionTrigger} from '@radix-ui/react-accordion';
-import {twMerge} from 'tailwind-merge';
+import {ScrollArea} from '@/components/ui/scroll-area';
+import WorkflowExecutionsHeader from '@/shared/components/workflow-executions/WorkflowExecutionsHeader';
+import {getTasksTree, handleTaskClick} from '@/shared/components/workflow-executions/WorkflowExecutionsUtils';
+import {Job, TaskExecution, TriggerExecution} from '@/shared/middleware/automation/workflow/execution';
+import {useCallback, useMemo, useState} from 'react';
+
+import WorkflowExecutionsTabsPanel from './WorkflowExecutionsTabsPanel';
+import WorkflowExecutionsTaskAccordionItem from './WorkflowExecutionsTaskAccordionItem';
+import WorkflowExecutionsTriggerAccordionItem from './WorkflowExecutionsTriggerAccordionItem';
 
 const WorkflowExecutionSheetAccordion = ({job, triggerExecution}: {job: Job; triggerExecution?: TriggerExecution}) => {
-    const startTime = job?.startDate?.getTime();
-    const endTime = job?.endDate?.getTime();
+    const [activeTab, setActiveTab] = useState<'input' | 'output' | 'error'>('input');
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<TaskExecution | TriggerExecution | undefined>(
+        triggerExecution || job.taskExecutions?.[0] || undefined
+    );
 
-    const taskExecutionsCompleted = job?.taskExecutions?.every((taskExecution) => taskExecution.status === 'COMPLETED');
-    const triggerExecutionCompleted = !triggerExecution || triggerExecution?.status === 'COMPLETED';
+    const tasksTree = useMemo(() => getTasksTree(job), [job]);
 
-    let duration;
+    const onTaskClick = useCallback(
+        (taskExecution: TaskExecution | TriggerExecution) => {
+            handleTaskClick({setActiveTab, setSelectedItem, taskExecution});
+        },
+        [setActiveTab, setSelectedItem]
+    );
 
-    if (startTime && endTime) {
-        duration = Math.round(endTime - startTime);
-    }
-
-    const taskExecutionsCount = job?.taskExecutions?.length || 0;
+    const isTriggerExecution = selectedItem?.id === triggerExecution?.id;
 
     return (
-        <>
-            <div className="px-3 py-4">
-                <div className="mb-3 flex items-center gap-x-2">
-                    <span
-                        className={twMerge(
-                            (!taskExecutionsCompleted || !triggerExecutionCompleted) && 'text-destructive',
-                            'text-base font-semibold uppercase'
-                        )}
-                    >
-                        {taskExecutionsCompleted && triggerExecutionCompleted ? 'Workflow executed' : 'Workflow failed'}
-                    </span>
-                </div>
+        <div className="flex size-full flex-col">
+            <WorkflowExecutionsHeader job={job} triggerExecution={triggerExecution} />
 
-                <div className="flex justify-between text-xs">
-                    <span>
-                        {job?.startDate &&
-                            `${job?.startDate?.toLocaleDateString()} ${job?.startDate?.toLocaleTimeString()}`}
-                    </span>
-
-                    <span>Duration: {duration}ms</span>
-
-                    <span>{`${taskExecutionsCount} task${taskExecutionsCount > 1 ? 's' : ''} executed`}</span>
-                </div>
-            </div>
-
-            <div className="overflow-y-auto pl-1 pr-1.5">
-                <Accordion collapsible defaultValue={triggerExecution?.id || ''} type="single">
-                    {triggerExecution && (
-                        <AccordionItem key={triggerExecution.id} value={triggerExecution.id || ''}>
-                            <AccordionTrigger className="flex w-full items-center justify-between border-border/50 bg-background data-[state=closed]:border-b">
-                                <WorkflowTriggerExecutionItem triggerExecution={triggerExecution} />
-                            </AccordionTrigger>
-
-                            <AccordionContent className="space-y-4 border-b border-b-border/50 p-3">
-                                <WorkflowExecutionContent
-                                    jobInputs={job.inputs}
-                                    workflowTriggerName={triggerExecution?.workflowTrigger?.name}
-                                    {...triggerExecution}
+            <div className="grid min-h-0 w-full max-w-full flex-1 grid-cols-2 gap-1 px-2">
+                <div className="flex min-h-0 flex-col overflow-hidden">
+                    <ScrollArea className="h-full pr-4">
+                        <Accordion
+                            className="space-y-2"
+                            collapsible
+                            defaultValue={isTriggerExecution ? triggerExecution?.id || '' : selectedItem?.id || ''}
+                            type="single"
+                        >
+                            {triggerExecution && (
+                                <WorkflowExecutionsTriggerAccordionItem
+                                    onTaskClick={onTaskClick}
+                                    selectedItem={selectedItem}
+                                    triggerExecution={triggerExecution}
                                 />
-                            </AccordionContent>
-                        </AccordionItem>
-                    )}
+                            )}
 
-                    {job?.taskExecutions &&
-                        job?.taskExecutions.map((taskExecution) => (
-                            <AccordionItem key={taskExecution.id} value={taskExecution.id || ''}>
-                                <AccordionTrigger className="flex w-full items-center justify-between border-border/50 bg-background data-[state=closed]:border-b">
-                                    <WorkflowTaskExecutionItem taskExecution={taskExecution} />
-                                </AccordionTrigger>
+                            {tasksTree.map((taskTreeItem) => (
+                                <WorkflowExecutionsTaskAccordionItem
+                                    key={taskTreeItem.task.id}
+                                    onTaskClick={onTaskClick}
+                                    selectedTaskExecutionId={selectedItem?.id || ''}
+                                    taskTreeItem={taskTreeItem}
+                                />
+                            ))}
+                        </Accordion>
+                    </ScrollArea>
+                </div>
 
-                                <AccordionContent className="space-y-4 border-b border-b-border/50 p-3">
-                                    <WorkflowExecutionContent {...taskExecution} />
-                                </AccordionContent>
-                            </AccordionItem>
-                        ))}
-                </Accordion>
+                <div className="flex min-h-0 flex-col rounded-md border border-border/50 p-3">
+                    <WorkflowExecutionsTabsPanel
+                        activeTab={activeTab}
+                        dialogOpen={dialogOpen}
+                        job={job}
+                        selectedItem={selectedItem}
+                        setActiveTab={setActiveTab}
+                        setDialogOpen={setDialogOpen}
+                        triggerExecution={triggerExecution}
+                    />
+                </div>
             </div>
-        </>
+        </div>
     );
 };
 

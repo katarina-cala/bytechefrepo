@@ -1,3 +1,4 @@
+import Button from '@/components/Button/Button';
 import {useCopyToClipboard} from '@uidotdev/usehooks';
 import {ClipboardCopyIcon} from 'lucide-react';
 
@@ -11,9 +12,13 @@ const WorkflowExecutionContentClipboardButton = ({value}: {value: any}) => {
     return (
         value &&
         (typeof value !== 'object' || Object.keys(value).length > 0) && (
-            <ClipboardCopyIcon
-                className="h-4 cursor-pointer"
-                onClick={() => setCopiedText(typeof value === 'object' ? JSON.stringify(value, null, SPACE) : value)}
+            <Button
+                icon={<ClipboardCopyIcon />}
+                onClick={() => {
+                    setCopiedText(typeof value === 'object' ? JSON.stringify(value, null, SPACE) : value);
+                }}
+                size="iconXs"
+                variant="ghost"
             />
         )
     );
