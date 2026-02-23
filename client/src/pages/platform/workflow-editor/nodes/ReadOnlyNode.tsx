@@ -3,6 +3,7 @@ import useWorkflowExecutionSheetStore from '@/pages/automation/workflow-executio
 import {useGetProjectWorkflowExecutionQuery} from '@/shared/queries/automation/workflowExecutions.queries';
 import {NodeDataType} from '@/shared/types';
 import {Handle, Position} from '@xyflow/react';
+import {AlertTriangleIcon, CheckIcon} from 'lucide-react';
 import {memo, useMemo} from 'react';
 import {twMerge} from 'tailwind-merge';
 import {useShallow} from 'zustand/shallow';
@@ -21,6 +22,7 @@ const STATUS_BORDER_CLASSES: Record<string, string> = {
 
 const ReadOnlyNode = ({data}: {data: NodeDataType}) => {
     const layoutDirection = useLayoutDirectionStore((state) => state.layoutDirection);
+    const isHorizontal = layoutDirection === 'LR';
 
     const {selectedItem, setSelectedItem, workflowExecutionId, workflowExecutionSheetOpen} =
         useWorkflowExecutionSheetStore(
@@ -51,6 +53,8 @@ const ReadOnlyNode = ({data}: {data: NodeDataType}) => {
 
     const isExecuted = !!executionStatus;
 
+    const isSuccessful = executionStatus === 'COMPLETED';
+
     const isSelected = data.trigger
         ? selectedItem?.id === workflowExecution?.triggerExecution?.id
         : selectedItem?.id === matchingTaskExecution?.id;
@@ -66,10 +70,10 @@ const ReadOnlyNode = ({data}: {data: NodeDataType}) => {
     const statusBorderClass = executionStatus ? STATUS_BORDER_CLASSES[executionStatus] : '';
 
     return (
-        <div className="relative flex items-center justify-center">
+        <div className={twMerge('nodrag relative flex items-center justify-center', isHorizontal && 'min-w-0')}>
             <Button
                 className={twMerge(
-                    'size-18 rounded-md border-2 border-stroke-neutral-tertiary bg-surface-neutral-primary p-4 text-primary shadow hover:bg-surface-neutral-primary focus-visible:ring-stroke-brand-focus active:bg-surface-neutral-primary [&_svg]:size-9',
+                    'size-18 relative rounded-md border-2 border-stroke-neutral-tertiary bg-surface-neutral-primary p-4 text-primary shadow hover:bg-surface-neutral-primary focus-visible:ring-stroke-brand-focus active:bg-surface-neutral-primary',
                     isExecuted
                         ? 'cursor-pointer hover:border-stroke-brand-secondary-hover hover:shadow-none'
                         : 'cursor-default opacity-50',
@@ -78,19 +82,40 @@ const ReadOnlyNode = ({data}: {data: NodeDataType}) => {
                 )}
                 onClick={handleNodeClick}
             >
-                {data.icon}
+                <div className="[&_svg]:size-9">{data.icon}</div>
+
+                {isExecuted ? (
+                    <div className="absolute bottom-1 right-1 [&_svg]:size-3">
+                        {isSuccessful ? (
+                            <CheckIcon className="text-content-success-primary" />
+                        ) : (
+                            <AlertTriangleIcon className="text-content-destructive-primary" />
+                        )}
+                    </div>
+                ) : null}
             </Button>
 
-            <div className="ml-2 flex w-full min-w-max flex-col items-start">
-                <span className="font-semibold">{data.title || data.label}</span>
+            <div
+                className={twMerge(
+                    'ml-2 flex w-full min-w-max flex-col items-start',
+                    isHorizontal && 'absolute top-full ml-0 w-auto min-w-0 max-w-[150px] items-center text-center'
+                )}
+            >
+                <span className={twMerge('font-semibold', isHorizontal && 'w-full truncate')}>
+                    {data.title || data.label}
+                </span>
 
-                {data.operationName && <pre className="text-sm">{data.operationName}</pre>}
+                {data.operationName && (
+                    <pre className={twMerge('text-sm', isHorizontal && 'w-full truncate')}>{data.operationName}</pre>
+                )}
 
-                <span className="text-sm text-gray-500">{data.trigger ? 'trigger_1' : data.name}</span>
+                <span className={twMerge('text-sm text-gray-500', isHorizontal && 'w-full truncate')}>
+                    {data.trigger ? 'trigger_1' : data.name}
+                </span>
             </div>
 
             <Handle
-                className={styles.handle}
+                className={styles.handleVisible}
                 isConnectable={false}
                 position={mapHandlePosition(Position.Top, layoutDirection)}
                 style={layoutDirection === 'TB' ? {left: '36px'} : undefined}
@@ -98,7 +123,7 @@ const ReadOnlyNode = ({data}: {data: NodeDataType}) => {
             />
 
             <Handle
-                className={styles.handle}
+                className={styles.handleVisible}
                 isConnectable={false}
                 position={mapHandlePosition(Position.Bottom, layoutDirection)}
                 style={layoutDirection === 'TB' ? {left: '36px'} : undefined}
