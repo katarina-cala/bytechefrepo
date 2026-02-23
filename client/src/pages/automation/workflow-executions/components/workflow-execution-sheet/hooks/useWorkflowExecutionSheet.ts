@@ -12,9 +12,10 @@ const POLLING_INTERVAL_MS = 2000;
 const useWorkflowExecutionSheet = () => {
     const [copilotPanelOpen, setCopilotPanelOpen] = useState(false);
 
-    const {setWorkflowExecutionSheetOpen, workflowExecutionId, workflowExecutionSheetOpen} =
+    const {setSelectedItem, setWorkflowExecutionSheetOpen, workflowExecutionId, workflowExecutionSheetOpen} =
         useWorkflowExecutionSheetStore(
             useShallow((state) => ({
+                setSelectedItem: state.setSelectedItem,
                 setWorkflowExecutionSheetOpen: state.setWorkflowExecutionSheetOpen,
                 workflowExecutionId: state.workflowExecutionId,
                 workflowExecutionSheetOpen: state.workflowExecutionSheetOpen,

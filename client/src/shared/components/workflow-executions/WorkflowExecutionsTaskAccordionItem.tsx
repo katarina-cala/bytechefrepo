@@ -2,14 +2,17 @@ import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from '@/co
 import {TaskTreeItemProps} from '@/shared/components/workflow-executions/WorkflowExecutionsUtils';
 import WorkflowTaskExecutionItem from '@/shared/components/workflow-executions/WorkflowTaskExecutionItem';
 import {TaskExecution} from '@/shared/middleware/automation/workflow/execution';
+import {useEffect, useState} from 'react';
 import {twMerge} from 'tailwind-merge';
 
 const WorkflowExecutionsTaskAccordionItem = ({
+    expandedAccordionValues,
     nestedItem,
     onTaskClick,
     selectedTaskExecutionId,
     taskTreeItem,
 }: {
+    expandedAccordionValues?: Set<string>;
     nestedItem?: boolean;
     onTaskClick: (taskExecution: TaskExecution) => void;
     selectedTaskExecutionId: string;
@@ -17,6 +20,48 @@ const WorkflowExecutionsTaskAccordionItem = ({
 }) => {
     const hasChildren = taskTreeItem.children?.length > 0;
     const hasIterations = taskTreeItem.iterations && taskTreeItem.iterations.length > 0;
+
+    const [childrenAccordionValue, setChildrenAccordionValue] = useState('');
+    const [iterationAccordionValue, setIterationAccordionValue] = useState('');
+
+    // Opens the correct child accordion item when a nested task is selected externally (e.g. node click)
+    useEffect(() => {
+        if (!expandedAccordionValues) {
+            return;
+        }
+
+        if (hasChildren) {
+            const matchingChild = taskTreeItem.children.find((child) =>
+                expandedAccordionValues.has(child.task.id || '')
+            );
+
+            setChildrenAccordionValue(matchingChild?.task.id || '');
+        }
+
+        if (hasIterations && taskTreeItem.iterations) {
+            let matchingIterationValue = '';
+
+            for (let index = 0; index < taskTreeItem.iterations.length; index++) {
+                const iterationValue = `${taskTreeItem.task.id}-iteration-${index}`;
+
+                if (expandedAccordionValues.has(iterationValue)) {
+                    matchingIterationValue = iterationValue;
+
+                    break;
+                }
+            }
+
+            setIterationAccordionValue(matchingIterationValue);
+        }
+    }, [expandedAccordionValues, hasChildren, hasIterations, taskTreeItem]);
+
+    const childrenAccordionProps = expandedAccordionValues
+        ? {onValueChange: setChildrenAccordionValue, value: childrenAccordionValue}
+        : {};
+
+    const iterationAccordionProps = expandedAccordionValues
+        ? {onValueChange: setIterationAccordionValue, value: iterationAccordionValue}
+        : {};
 
     return (
         <AccordionItem
@@ -44,9 +89,15 @@ const WorkflowExecutionsTaskAccordionItem = ({
                     onClick={(event) => event.stopPropagation()}
                 >
                     {hasIterations ? (
-                        <Accordion className="mt-2 space-y-2" collapsible type="single">
+                        <Accordion className="mt-2 space-y-2" collapsible type="single" {...iterationAccordionProps}>
                             {taskTreeItem.iterations?.map((iterationItems, index) => {
                                 const iterationValue = `${taskTreeItem.task.id}-iteration-${index}`;
+
+                                const innerChildDefaultValue = expandedAccordionValues
+                                    ? iterationItems.find((child) =>
+                                          expandedAccordionValues.has(child.task.id || '')
+                                      )?.task.id || ''
+                                    : undefined;
 
                                 return (
                                     <AccordionItem
@@ -68,13 +119,26 @@ const WorkflowExecutionsTaskAccordionItem = ({
 
                                         {iterationItems.length > 0 && (
                                             <AccordionContent className="border-l border-stroke-neutral-secondary p-0">
-                                                <Accordion className="mt-2 space-y-2" collapsible type="single">
+                                                <Accordion
+                                                    className="mt-2 space-y-2"
+                                                    collapsible
+                                                    defaultValue={innerChildDefaultValue}
+                                                    key={
+                                                        expandedAccordionValues
+                                                            ? selectedTaskExecutionId
+                                                            : undefined
+                                                    }
+                                                    type="single"
+                                                >
                                                     {iterationItems.map((childItem) => (
                                                         <WorkflowExecutionsTaskAccordionItem
+                                                            expandedAccordionValues={expandedAccordionValues}
                                                             key={childItem.task.id}
                                                             nestedItem
                                                             onTaskClick={onTaskClick}
-                                                            selectedTaskExecutionId={selectedTaskExecutionId || ''}
+                                                            selectedTaskExecutionId={
+                                                                selectedTaskExecutionId || ''
+                                                            }
                                                             taskTreeItem={childItem}
                                                         />
                                                     ))}
@@ -86,9 +150,10 @@ const WorkflowExecutionsTaskAccordionItem = ({
                             })}
                         </Accordion>
                     ) : (
-                        <Accordion className="mt-2 space-y-2" collapsible type="single">
+                        <Accordion className="mt-2 space-y-2" collapsible type="single" {...childrenAccordionProps}>
                             {taskTreeItem.children.map((childItem) => (
                                 <WorkflowExecutionsTaskAccordionItem
+                                    expandedAccordionValues={expandedAccordionValues}
                                     key={childItem.task.id}
                                     nestedItem
                                     onTaskClick={onTaskClick}

@@ -8,6 +8,57 @@ export interface TaskTreeItemProps {
     task: TaskExecution;
 }
 
+export const getExpandedAccordionValues = (
+    tasksTree: TaskTreeItemProps[],
+    selectedItemId: string | undefined
+): Set<string> => {
+    if (!selectedItemId) {
+        return new Set();
+    }
+
+    const findPath = (items: TaskTreeItemProps[]): string[] | null =>
+        items.reduce<string[] | null>((foundPath, item) => {
+            if (foundPath) {
+                return foundPath;
+            }
+
+            const taskId = item.task.id || '';
+
+            if (taskId === selectedItemId) {
+                return [taskId];
+            }
+
+            const childPath = findPath(item.children);
+
+            if (childPath) {
+                return [taskId, ...childPath];
+            }
+
+            const iterationResult = item.iterations?.reduce<string[] | null>(
+                (iterationFoundPath, iterationItems, index) => {
+                    if (iterationFoundPath) {
+                        return iterationFoundPath;
+                    }
+
+                    const iterationPath = findPath(iterationItems);
+
+                    if (iterationPath) {
+                        return [taskId, `${taskId}-iteration-${index}`, ...iterationPath];
+                    }
+
+                    return null;
+                },
+                null
+            );
+
+            return iterationResult || null;
+        }, null);
+
+    const path = findPath(tasksTree);
+
+    return new Set(path || [selectedItemId]);
+};
+
 export const getTasksTree = (job: Job): TaskTreeItemProps[] => {
     if (!job?.taskExecutions) {
         return [];

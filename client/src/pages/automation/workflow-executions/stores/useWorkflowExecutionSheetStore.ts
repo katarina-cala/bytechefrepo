@@ -1,7 +1,11 @@
 /* eslint-disable sort-keys */
+import {TaskExecution, TriggerExecution} from '@/shared/middleware/automation/workflow/execution';
 import {create} from 'zustand';
 
 interface WorkflowExecutionSheetStateI {
+    selectedItem: TaskExecution | TriggerExecution | undefined;
+    setSelectedItem: (selectedItem: TaskExecution | TriggerExecution | undefined) => void;
+
     workflowExecutionSheetOpen: boolean;
     setWorkflowExecutionSheetOpen: (workflowExecutionDetailsSheetOpen: boolean) => void;
 
@@ -10,6 +14,13 @@ interface WorkflowExecutionSheetStateI {
 }
 
 export const useWorkflowExecutionSheetStore = create<WorkflowExecutionSheetStateI>()((set) => ({
+    selectedItem: undefined,
+    setSelectedItem: (selectedItem: TaskExecution | TriggerExecution | undefined) =>
+        set((state) => ({
+            ...state,
+            selectedItem: selectedItem,
+        })),
+
     workflowExecutionId: 0,
     setWorkflowExecutionId: (workflowExecutionId) =>
         set((state) => ({
