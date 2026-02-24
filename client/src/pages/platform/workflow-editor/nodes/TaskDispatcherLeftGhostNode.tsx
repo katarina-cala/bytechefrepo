@@ -2,17 +2,20 @@ import {Handle, Position} from '@xyflow/react';
 import {memo} from 'react';
 import {twMerge} from 'tailwind-merge';
 
+import useGhostNodeExecutionClassName from '../hooks/useGhostNodeExecutionClassName';
 import useLayoutDirectionStore from '../stores/useLayoutDirectionStore';
 import {mapHandlePosition} from '../utils/directionUtils';
 import styles from './NodeTypes.module.css';
 
-const TaskDispatcherLeftGhostNode = ({id}: {id: string}) => {
+const TaskDispatcherLeftGhostNode = ({data, id}: {data: Record<string, string>; id: string}) => {
     const layoutDirection = useLayoutDirectionStore((state) => state.layoutDirection);
     const isHorizontal = layoutDirection === 'LR';
 
+    const executionClassName = useGhostNodeExecutionClassName(data?.taskDispatcherId);
+
     return (
         <div
-            className={twMerge('nodrag', isHorizontal ? 'h-0.5 w-4' : 'h-4 w-0.5', 'bg-stroke-neutral-tertiary')}
+            className={twMerge('nodrag', isHorizontal ? 'h-0.5 w-4' : 'h-4 w-0.5', executionClassName)}
             data-nodetype="taskDispatcherLeftGhostNode"
             key={id}
         >

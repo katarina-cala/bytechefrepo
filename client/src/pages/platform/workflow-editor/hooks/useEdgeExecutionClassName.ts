@@ -8,8 +8,8 @@ import {useShallow} from 'zustand/react/shallow';
 import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 
 const DEFAULT_EDGE_CLASS_NAME = 'fill-none stroke-gray-300 stroke-2';
-const COMPLETED_EDGE_CLASS_NAME = 'fill-none stroke-stroke-success-secondary stroke-2';
-const NOT_EXECUTED_EDGE_CLASS_NAME = 'fill-none stroke-gray-300 stroke-2 [stroke-dasharray:5,5]';
+const COMPLETED_EDGE_CLASS_NAME = 'fill-none stroke-stroke-success-secondary stroke-2 z-[9999]';
+const NOT_EXECUTED_EDGE_CLASS_NAME = 'fill-none stroke-gray-300 stroke-2 [stroke-dasharray:5,5] z-0';
 
 function getNodeExecutionStatus(
     node: Node | undefined,
