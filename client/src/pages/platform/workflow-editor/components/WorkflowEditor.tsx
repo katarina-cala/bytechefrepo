@@ -111,9 +111,11 @@ const WorkflowEditor = ({
                         )}
                     </ControlButton>
 
-                    <ControlButton onClick={handleResetLayout} title="Reset layout">
-                        <BrushCleaningIcon className="size-3" />
-                    </ControlButton>
+                    {!readOnlyWorkflow && (
+                        <ControlButton onClick={handleResetLayout} title="Reset layout">
+                            <BrushCleaningIcon className="size-3" />
+                        </ControlButton>
+                    )}
                 </Controls>
             </ReactFlow>
         </div>
