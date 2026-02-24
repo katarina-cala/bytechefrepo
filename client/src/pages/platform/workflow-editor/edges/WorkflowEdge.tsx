@@ -5,6 +5,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {twMerge} from 'tailwind-merge';
 
 import WorkflowNodesPopoverMenu from '../components/WorkflowNodesPopoverMenu';
+import useEdgeExecutionClassName from '../hooks/useEdgeExecutionClassName';
 import useLayoutDirectionStore from '../stores/useLayoutDirectionStore';
 import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 import BranchCaseLabel from './BranchCaseLabel';
@@ -34,6 +35,10 @@ export default function WorkflowEdge({
 
     const sourceNode = nodes.find((node) => node.id === sourceNodeId);
     const targetNode = nodes.find((node) => node.id === targetNodeId);
+
+    const edgeClassName = useEdgeExecutionClassName(id);
+
+    const isReadOnly = sourceNode?.type === 'readonly' || targetNode?.type === 'readonly';
 
     const isMiddleCaseEdge = !!(data as Record<string, unknown>)?.isMiddleCase;
     const isHorizontal = layoutDirection === 'LR';
@@ -119,19 +124,13 @@ export default function WorkflowEdge({
 
     return (
         <>
-            <BaseEdge
-                className="fill-none stroke-gray-300 stroke-2"
-                id={id}
-                markerEnd={markerEnd}
-                path={edgePath}
-                style={style}
-            />
+            <BaseEdge className={edgeClassName} id={id} markerEnd={markerEnd} path={edgePath} style={style} />
 
             {caseKey && isSourceTaskDispatcherTopGhostNode && (
                 <BranchCaseLabel
                     caseKey={caseKey}
                     edgeId={id}
-                    hasEdgeButton
+                    hasEdgeButton={!isReadOnly}
                     layoutDirection={layoutDirection}
                     sourceX={sourceX}
                     sourceY={sourceY}
@@ -140,60 +139,62 @@ export default function WorkflowEdge({
                 />
             )}
 
-            <EdgeLabelRenderer key={id}>
-                <WorkflowNodesPopoverMenu
-                    edgeId={id}
-                    hideClusterElementComponents
-                    hideTriggerComponents
-                    sourceNodeId={sourceNodeId}
-                >
-                    <div
-                        className="nodrag nopan"
-                        id={id}
-                        style={{
-                            pointerEvents: 'all',
-                            position: 'absolute',
-                            transform: `translate(-50%, -50%) translate(${buttonPosition.x}px,${buttonPosition.y}px)`,
-                            zIndex: isDropzoneActive ? 40 : 'auto',
-                        }}
+            {!isReadOnly && (
+                <EdgeLabelRenderer key={id}>
+                    <WorkflowNodesPopoverMenu
+                        edgeId={id}
+                        hideClusterElementComponents
+                        hideTriggerComponents
+                        sourceNodeId={sourceNodeId}
                     >
                         <div
-                            className={twMerge(
-                                'flex cursor-pointer items-center justify-center rounded transition-all',
-                                isDropzoneActive
-                                    ? 'size-16 border-2 border-blue-100 bg-blue-100'
-                                    : 'size-6 border-2 border-stroke-neutral-tertiary bg-white hover:scale-110 hover:border-stroke-brand-secondary-hover'
-                            )}
-                            id={`${id}-button`}
-                            onDragEnter={() => setDropzoneActive(true)}
-                            onDragLeave={(event) => {
-                                const relatedTarget = event.relatedTarget as Node | null;
-
-                                if (!relatedTarget || !event.currentTarget.contains(relatedTarget)) {
-                                    setDropzoneActive(false);
-                                }
-                            }}
-                            onDragOver={(event) => {
-                                event.preventDefault();
-
-                                setDropzoneActive(true);
-                            }}
-                            onDrop={(event) => {
-                                event.preventDefault();
-
-                                setDropzoneActive(false);
+                            className="nodrag nopan"
+                            id={id}
+                            style={{
+                                pointerEvents: 'all',
+                                position: 'absolute',
+                                transform: `translate(-50%, -50%) translate(${buttonPosition.x}px,${buttonPosition.y}px)`,
+                                zIndex: isDropzoneActive ? 40 : 'auto',
                             }}
                         >
-                            <PlusIcon
+                            <div
                                 className={twMerge(
-                                    `text-muted-foreground`,
-                                    isDropzoneActive ? 'size-14 text-muted-foreground/50' : 'size-3.5'
+                                    'flex cursor-pointer items-center justify-center rounded transition-all',
+                                    isDropzoneActive
+                                        ? 'size-16 border-2 border-blue-100 bg-blue-100'
+                                        : 'size-6 border-2 border-stroke-neutral-tertiary bg-white hover:scale-110 hover:border-stroke-brand-secondary-hover'
                                 )}
-                            />
+                                id={`${id}-button`}
+                                onDragEnter={() => setDropzoneActive(true)}
+                                onDragLeave={(event) => {
+                                    const relatedTarget = event.relatedTarget as Node | null;
+
+                                    if (!relatedTarget || !event.currentTarget.contains(relatedTarget)) {
+                                        setDropzoneActive(false);
+                                    }
+                                }}
+                                onDragOver={(event) => {
+                                    event.preventDefault();
+
+                                    setDropzoneActive(true);
+                                }}
+                                onDrop={(event) => {
+                                    event.preventDefault();
+
+                                    setDropzoneActive(false);
+                                }}
+                            >
+                                <PlusIcon
+                                    className={twMerge(
+                                        `text-muted-foreground`,
+                                        isDropzoneActive ? 'size-14 text-muted-foreground/50' : 'size-3.5'
+                                    )}
+                                />
+                            </div>
                         </div>
-                    </div>
-                </WorkflowNodesPopoverMenu>
-            </EdgeLabelRenderer>
+                    </WorkflowNodesPopoverMenu>
+                </EdgeLabelRenderer>
+            )}
         </>
     );
 }
