@@ -1,6 +1,7 @@
 import {BaseEdge, EdgeProps, getSmoothStepPath} from '@xyflow/react';
 import {useShallow} from 'zustand/react/shallow';
 
+import useEdgeExecutionClassName from '../hooks/useEdgeExecutionClassName';
 import useLayoutDirectionStore from '../stores/useLayoutDirectionStore';
 import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 import BranchCaseLabel from './BranchCaseLabel';
@@ -54,11 +55,13 @@ export default function LabeledBranchCaseEdge({
         targetY,
     });
 
+    const edgeClassName = useEdgeExecutionClassName(id);
+
     const caseKey = targetNode?.data?.caseKey as string | number | undefined;
 
     return (
         <>
-            <BaseEdge className="fill-none stroke-gray-300 stroke-2" id={id} path={edgePath} style={style} />
+            <BaseEdge className={edgeClassName} id={id} path={edgePath} style={style} />
 
             {caseKey && (
                 <BranchCaseLabel

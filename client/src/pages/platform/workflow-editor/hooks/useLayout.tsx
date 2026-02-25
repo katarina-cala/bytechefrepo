@@ -455,10 +455,7 @@ export default function useLayout({
 
             layoutNodes.pop();
 
-            edges = taskEdges.map((edge) => ({
-                ...edge,
-                type: 'smoothstep',
-            }));
+            edges = taskEdges;
 
             const lastEdge = edges[edges.length - 1];
             if (lastEdge && lastEdge.target === FINAL_PLACEHOLDER_NODE_ID) {
