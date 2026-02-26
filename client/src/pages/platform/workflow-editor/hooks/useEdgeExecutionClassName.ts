@@ -10,6 +10,12 @@ import useWorkflowDataStore from '../stores/useWorkflowDataStore';
 const DEFAULT_EDGE_CLASS_NAME = 'fill-none stroke-gray-300 stroke-2';
 const NOT_EXECUTED_EDGE_CLASS_NAME = 'fill-none stroke-gray-300 stroke-2 [stroke-dasharray:5,5]';
 
+const GHOST_NODE_TYPES = new Set([
+    'taskDispatcherTopGhostNode',
+    'taskDispatcherBottomGhostNode',
+    'taskDispatcherLeftGhostNode',
+]);
+
 function getNodeExecutionStatus(
     node: Node | undefined,
     triggerExecutionStatus: string | undefined,
@@ -21,15 +27,33 @@ function getNodeExecutionStatus(
 
     const nodeData = node.data as NodeDataType;
 
-    if (nodeData.trigger) {
-        return triggerExecutionStatus;
+    if (node.type === 'readonly') {
+        if (nodeData.trigger) {
+            return triggerExecutionStatus;
+        }
+
+        const matchingExecution = taskExecutions?.find(
+            (execution) => execution.workflowTask?.name === nodeData.workflowNodeName
+        );
+
+        return matchingExecution?.status;
     }
 
-    const matchingExecution = taskExecutions?.find(
-        (execution) => execution.workflowTask?.name === nodeData.workflowNodeName
-    );
+    if (GHOST_NODE_TYPES.has(node.type || '')) {
+        const taskDispatcherId = nodeData.taskDispatcherId;
 
-    return matchingExecution?.status;
+        if (taskDispatcherId) {
+            const matchingExecution = taskExecutions?.find(
+                (execution) => execution.workflowTask?.name === taskDispatcherId
+            );
+
+            return matchingExecution?.status;
+        }
+
+        return undefined;
+    }
+
+    return undefined;
 }
 
 export default function useEdgeExecutionClassName(edgeId: string): string {
@@ -47,6 +71,8 @@ export default function useEdgeExecutionClassName(edgeId: string): string {
         workflowExecutionSheetOpen
     );
 
+    const isReadOnlyWorkflow = useMemo(() => nodes.some((node) => node.type === 'readonly'), [nodes]);
+
     const sourceNodeId = edgeId.split('=>')[0];
     const targetNodeId = edgeId.split('=>')[1];
 
@@ -57,33 +83,25 @@ export default function useEdgeExecutionClassName(edgeId: string): string {
     const taskExecutions = workflowExecution?.job?.taskExecutions;
 
     return useMemo(() => {
-        if (!workflowExecution || !workflowExecutionSheetOpen) {
+        if (!isReadOnlyWorkflow || !workflowExecution || !workflowExecutionSheetOpen) {
             return DEFAULT_EDGE_CLASS_NAME;
         }
 
-        const isSourceReadOnly = sourceNode?.type === 'readonly';
-        const isTargetReadOnly = targetNode?.type === 'readonly';
+        const sourceStatus = getNodeExecutionStatus(sourceNode, triggerExecutionStatus, taskExecutions);
+        const targetStatus = getNodeExecutionStatus(targetNode, triggerExecutionStatus, taskExecutions);
 
-        if (!isSourceReadOnly && !isTargetReadOnly) {
-            return DEFAULT_EDGE_CLASS_NAME;
-        }
-
-        const readOnlyStatuses: (string | undefined)[] = [];
-
-        if (isSourceReadOnly) {
-            readOnlyStatuses.push(getNodeExecutionStatus(sourceNode, triggerExecutionStatus, taskExecutions));
-        }
-
-        if (isTargetReadOnly) {
-            readOnlyStatuses.push(getNodeExecutionStatus(targetNode, triggerExecutionStatus, taskExecutions));
-        }
-
-        const anyNotExecuted = readOnlyStatuses.some((status) => !status);
-
-        if (anyNotExecuted) {
+        if (sourceStatus === undefined || targetStatus === undefined) {
             return NOT_EXECUTED_EDGE_CLASS_NAME;
         }
 
         return DEFAULT_EDGE_CLASS_NAME;
-    }, [sourceNode, targetNode, triggerExecutionStatus, taskExecutions, workflowExecution, workflowExecutionSheetOpen]);
+    }, [
+        isReadOnlyWorkflow,
+        sourceNode,
+        targetNode,
+        triggerExecutionStatus,
+        taskExecutions,
+        workflowExecution,
+        workflowExecutionSheetOpen,
+    ]);
 }

@@ -38,7 +38,8 @@ export default function WorkflowEdge({
 
     const edgeClassName = useEdgeExecutionClassName(id);
 
-    const isReadOnly = sourceNode?.type === 'readonly' || targetNode?.type === 'readonly';
+    const isReadOnly = useMemo(() => nodes.some((node) => node.type === 'readonly'), [nodes]);
+    console.log(id, 'isReadOnly', isReadOnly);
 
     const isMiddleCaseEdge = !!(data as Record<string, unknown>)?.isMiddleCase;
     const isHorizontal = layoutDirection === 'LR';
